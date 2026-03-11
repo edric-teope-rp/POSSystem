@@ -9,6 +9,7 @@ import org.possystem.event.PosEventDispatcher;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,28 +49,51 @@ public class TransactionService implements PosEventDispatcher {
     }
 
     public void addItem(String upc, String name, double unitPrice) throws SQLException {
-        TransactionItem item = new TransactionItem(
-                0,
-                currentTransactionId,
-                upc,
-                name,
-                1,
-                unitPrice,
-                unitPrice,
-                "ACTIVE"
-        );
-        int itemId = transactionItemDao.insert(item);
-        TransactionItem savedItem = new TransactionItem(
-                itemId,
-                currentTransactionId,
-                upc,
-                name,
-                1,
-                unitPrice,
-                unitPrice,
-                "ACTIVE"
-        );
-        dispatchEvent(PosEvent.ITEM_ADDED, savedItem);
+        // Check if item already exists in current transaction
+        TransactionItem existingItem = transactionItemDao.findActiveItemByUpc(currentTransactionId, upc);
+
+        if (existingItem != null) {
+            // Item already exists, increment quantity
+            int newQuantity = existingItem.quantity() + 1;
+            double newSubtotal = newQuantity * unitPrice;
+            transactionItemDao.updateQuantity(existingItem.id(), newQuantity, newSubtotal);
+
+            TransactionItem updatedItem = new TransactionItem(
+                    existingItem.id(),
+                    currentTransactionId,
+                    upc,
+                    name,
+                    newQuantity,
+                    unitPrice,
+                    newSubtotal,
+                    "ACTIVE"
+            );
+            dispatchEvent(PosEvent.QUANTITY_UPDATED, updatedItem);
+        } else {
+            // New item, insert
+            TransactionItem item = new TransactionItem(
+                    0,
+                    currentTransactionId,
+                    upc,
+                    name,
+                    1,
+                    unitPrice,
+                    unitPrice,
+                    "ACTIVE"
+            );
+            int itemId = transactionItemDao.insert(item);
+            TransactionItem savedItem = new TransactionItem(
+                    itemId,
+                    currentTransactionId,
+                    upc,
+                    name,
+                    1,
+                    unitPrice,
+                    unitPrice,
+                    "ACTIVE"
+            );
+            dispatchEvent(PosEvent.ITEM_ADDED, savedItem);
+        }
     }
 
     public void voidItem(int itemId) throws SQLException {
@@ -129,5 +153,36 @@ public class TransactionService implements PosEventDispatcher {
 
     public int getCurrentTransactionId() {
         return currentTransactionId;
+    }
+
+    public List<TransactionItem> getCurrentSaleItems() throws SQLException {
+        if (currentTransactionId == -1) {
+            return new ArrayList<>();
+        }
+        return transactionItemDao.findByTransactionId(currentTransactionId);
+    }
+
+    public void deleteSelectedItems(List<Integer> itemIds) throws SQLException {
+        for (Integer itemId : itemIds) {
+            transactionItemDao.updateStatus(itemId, "VOIDED");
+        }
+        dispatchEvent(PosEvent.ITEM_VOIDED, itemIds);
+    }
+
+    public double getTransactionSubtotal() throws SQLException {
+        if (currentTransactionId == -1) {
+            return 0.0;
+        }
+        List<TransactionItem> items = transactionItemDao.findByTransactionId(currentTransactionId);
+        return items.stream()
+                .filter(item -> item.status().equals("ACTIVE"))
+                .mapToDouble(TransactionItem::subtotal)
+                .sum();
+    }
+
+    public double getTransactionTotal() throws SQLException {
+        double subtotal = getTransactionSubtotal();
+        double tax = subtotal * TAX_RATE;
+        return subtotal + tax;
     }
 }

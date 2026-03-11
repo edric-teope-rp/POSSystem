@@ -25,7 +25,9 @@ public class PriceBookDao {
             return Optional.of(new PriceBook(
                     rs.getString("upc"),
                     rs.getString("name"),
-                    rs.getDouble("price")
+                    rs.getDouble("price"),
+                    rs.getBoolean("is_featured"),
+                    (Integer) rs.getObject("quick_key_position")
             ));
         }
         return Optional.empty();
@@ -42,7 +44,28 @@ public class PriceBookDao {
             items.add(new PriceBook(
                     rs.getString("upc"),
                     rs.getString("name"),
-                    rs.getDouble("price")
+                    rs.getDouble("price"),
+                    rs.getBoolean("is_featured"),
+                    (Integer) rs.getObject("quick_key_position")
+            ));
+        }
+        return items;
+    }
+
+    public List<PriceBook> findFeaturedItems() throws SQLException {
+        String sql = "SELECT * FROM price_book WHERE is_featured = TRUE ORDER BY quick_key_position";
+        Connection conn = DatabaseManager.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+
+        List<PriceBook> items = new ArrayList<>();
+        while (rs.next()) {
+            items.add(new PriceBook(
+                    rs.getString("upc"),
+                    rs.getString("name"),
+                    rs.getDouble("price"),
+                    rs.getBoolean("is_featured"),
+                    (Integer) rs.getObject("quick_key_position")
             ));
         }
         return items;

@@ -78,4 +78,27 @@ public class TransactionItemDao {
         stmt.setInt(3, id);
         stmt.executeUpdate();
     }
+
+    public TransactionItem findActiveItemByUpc(int transactionId, String upc) throws SQLException {
+        String sql = "SELECT * FROM transaction_items WHERE transaction_id = ? AND upc = ? AND status = 'ACTIVE'";
+        Connection conn = DatabaseManager.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, transactionId);
+        stmt.setString(2, upc);
+        ResultSet rs = stmt.executeQuery();
+
+        if (rs.next()) {
+            return new TransactionItem(
+                    rs.getInt("id"),
+                    rs.getInt("transaction_id"),
+                    rs.getString("upc"),
+                    rs.getString("name"),
+                    rs.getInt("quantity"),
+                    rs.getDouble("unit_price"),
+                    rs.getDouble("subtotal"),
+                    rs.getString("status")
+            );
+        }
+        return null;
+    }
 }

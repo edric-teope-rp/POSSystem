@@ -35,4 +35,8 @@ public class PriceBookService implements PosEventDispatcher {
     public List<PriceBook> getAllItems() throws SQLException {
         return priceBookDao.findAll();
     }
+
+    public List<PriceBook> getFeaturedItems() throws SQLException {
+        return priceBookDao.findFeaturedItems();
+    }
 }
