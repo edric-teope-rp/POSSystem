@@ -39,4 +39,9 @@ public class PriceBookService implements PosEventDispatcher {
     public List<PriceBook> getFeaturedItems() throws SQLException {
         return priceBookDao.findFeaturedItems();
     }
+
+    public void updateProduct(String upc, String name, double price, boolean isFeatured) throws SQLException {
+        priceBookDao.update(upc, name, price, isFeatured);
+        dispatchEvent(PosEvent.ITEM_UPDATED, upc);
+    }
 }

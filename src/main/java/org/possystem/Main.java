@@ -1,11 +1,22 @@
 package org.possystem;
 
 import org.possystem.database.DatabaseManager;
+import org.possystem.ui.PosInterfacePolished;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+import javax.swing.*;
+
+/**
+ * Main entry point for POS System
+ */
 public class Main {
-    void main() {
+    public static void main(String[] args) {
+        // Initialize database first
         DatabaseManager.initialize();
+
+        // Launch POS Interface on Swing thread
+        SwingUtilities.invokeLater(() -> {
+            PosInterfacePolished posInterface = new PosInterfacePolished();
+            posInterface.setVisible(true);
+        });
     }
 }

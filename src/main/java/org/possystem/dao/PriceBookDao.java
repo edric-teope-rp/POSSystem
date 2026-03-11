@@ -70,4 +70,19 @@ public class PriceBookDao {
         }
         return items;
     }
+
+    public void update(String upc, String name, double price, boolean isFeatured) throws SQLException {
+        String sql = "UPDATE price_book SET name = ?, price = ?, is_featured = ? WHERE upc = ?";
+        Connection conn = DatabaseManager.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setString(1, name);
+        stmt.setDouble(2, price);
+        stmt.setBoolean(3, isFeatured);
+        stmt.setString(4, upc);
+
+        int rowsAffected = stmt.executeUpdate();
+        if (rowsAffected == 0) {
+            throw new SQLException("Product not found with UPC: " + upc);
+        }
+    }
 }
