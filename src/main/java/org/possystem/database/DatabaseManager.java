@@ -32,11 +32,9 @@ public class DatabaseManager {
 
         stmt.execute("""
             CREATE TABLE IF NOT EXISTS price_book (
-                upc                 VARCHAR(50) PRIMARY KEY,
-                name                VARCHAR(100) NOT NULL,
-                price               DOUBLE NOT NULL,
-                stock               INT NOT NULL,
-                is_age_restricted   BOOLEAN DEFAULT FALSE
+                upc     VARCHAR(50) PRIMARY KEY,
+                name    VARCHAR(100) NOT NULL,
+                price   DOUBLE NOT NULL
             )
         """);
 

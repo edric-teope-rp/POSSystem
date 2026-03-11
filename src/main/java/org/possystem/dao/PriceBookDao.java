@@ -25,9 +25,7 @@ public class PriceBookDao {
             return Optional.of(new PriceBook(
                     rs.getString("upc"),
                     rs.getString("name"),
-                    rs.getDouble("price"),
-                    rs.getInt("stock"),
-                    rs.getBoolean("is_age_restricted")
+                    rs.getDouble("price")
             ));
         }
         return Optional.empty();
@@ -44,9 +42,7 @@ public class PriceBookDao {
             items.add(new PriceBook(
                     rs.getString("upc"),
                     rs.getString("name"),
-                    rs.getDouble("price"),
-                    rs.getInt("stock"),
-                    rs.getBoolean("is_age_restricted")
+                    rs.getDouble("price")
             ));
         }
         return items;
