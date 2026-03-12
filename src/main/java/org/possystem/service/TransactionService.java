@@ -6,6 +6,8 @@ import org.possystem.entity.TransactionHeader;
 import org.possystem.entity.TransactionItem;
 import org.possystem.event.PosEvent;
 import org.possystem.event.PosEventDispatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -20,6 +22,7 @@ import java.util.List;
 public class TransactionService implements PosEventDispatcher {
 
     private static final double TAX_RATE = 0.07;
+    private static final Logger journal = LoggerFactory.getLogger("TRANSACTION_JOURNAL");
 
     private final TransactionHeaderDao transactionHeaderDao;
     private final TransactionItemDao transactionItemDao;
@@ -45,6 +48,10 @@ public class TransactionService implements PosEventDispatcher {
                 "PENDING"
         );
         currentTransactionId = transactionHeaderDao.insert(header);
+
+        // Log transaction creation
+        journal.info("TX_CREATE|TX_ID:{}", currentTransactionId);
+
         dispatchEvent(PosEvent.TRANSACTION_CREATED, currentTransactionId);
     }
 
@@ -54,9 +61,14 @@ public class TransactionService implements PosEventDispatcher {
 
         if (existingItem != null) {
             // Item already exists, increment quantity
-            int newQuantity = existingItem.quantity() + 1;
+            int oldQuantity = existingItem.quantity();
+            int newQuantity = oldQuantity + 1;
             double newSubtotal = newQuantity * unitPrice;
             transactionItemDao.updateQuantity(existingItem.id(), newQuantity, newSubtotal);
+
+            // Log quantity update
+            journal.info(String.format("ITEM_QTY_UPDATE|TX_ID:%d|ITEM_ID:%d|UPC:%s|NAME:%s|OLD_QTY:%d|NEW_QTY:%d|UNIT_PRICE:%.2f|NEW_LINE_TOTAL:%.2f",
+                    currentTransactionId, existingItem.id(), upc, name, oldQuantity, newQuantity, unitPrice, newSubtotal));
 
             TransactionItem updatedItem = new TransactionItem(
                     existingItem.id(),
@@ -82,6 +94,11 @@ public class TransactionService implements PosEventDispatcher {
                     "ACTIVE"
             );
             int itemId = transactionItemDao.insert(item);
+
+            // Log item addition
+            journal.info(String.format("ITEM_ADD|TX_ID:%d|ITEM_ID:%d|UPC:%s|NAME:%s|QTY:1|UNIT_PRICE:%.2f|LINE_TOTAL:%.2f",
+                    currentTransactionId, itemId, upc, name, unitPrice, unitPrice));
+
             TransactionItem savedItem = new TransactionItem(
                     itemId,
                     currentTransactionId,
@@ -97,19 +114,51 @@ public class TransactionService implements PosEventDispatcher {
     }
 
     public void voidItem(int itemId) throws SQLException {
+        // Get item details before voiding
+        List<TransactionItem> items = transactionItemDao.findByTransactionId(currentTransactionId);
+        TransactionItem itemToVoid = items.stream()
+                .filter(item -> item.id() == itemId)
+                .findFirst()
+                .orElse(null);
+
         transactionItemDao.updateStatus(itemId, "VOIDED");
+
+        // Log item void
+        if (itemToVoid != null) {
+            journal.info(String.format("ITEM_VOID|TX_ID:%d|ITEM_ID:%d|NAME:%s|QTY:%d|VOIDED_AMOUNT:%.2f",
+                    currentTransactionId, itemId, itemToVoid.name(), itemToVoid.quantity(), itemToVoid.subtotal()));
+        }
+
         dispatchEvent(PosEvent.ITEM_VOIDED, itemId);
     }
 
     public void voidTransaction() throws SQLException {
         transactionHeaderDao.updateStatus(currentTransactionId, "VOIDED");
+
+        // Log transaction void
+        journal.info("TX_VOID|TX_ID:{}|REASON:user_cancelled", currentTransactionId);
+
         dispatchEvent(PosEvent.TRANSACTION_VOIDED, currentTransactionId);
         currentTransactionId = -1;
     }
 
     public void updateQuantity(int itemId, int quantity, double unitPrice) throws SQLException {
+        // Get old quantity before updating
+        List<TransactionItem> items = transactionItemDao.findByTransactionId(currentTransactionId);
+        TransactionItem oldItem = items.stream()
+                .filter(item -> item.id() == itemId)
+                .findFirst()
+                .orElse(null);
+
         double subtotal = quantity * unitPrice;
         transactionItemDao.updateQuantity(itemId, quantity, subtotal);
+
+        // Log quantity update
+        if (oldItem != null) {
+            journal.info(String.format("ITEM_QTY_UPDATE|TX_ID:%d|ITEM_ID:%d|UPC:%s|NAME:%s|OLD_QTY:%d|NEW_QTY:%d|UNIT_PRICE:%.2f|NEW_LINE_TOTAL:%.2f",
+                    currentTransactionId, itemId, oldItem.upc(), oldItem.name(), oldItem.quantity(), quantity, unitPrice, subtotal));
+        }
+
         dispatchEvent(PosEvent.QUANTITY_UPDATED, itemId);
     }
 
@@ -135,18 +184,38 @@ public class TransactionService implements PosEventDispatcher {
                 .filter(item -> item.status().equals("ACTIVE"))
                 .mapToDouble(TransactionItem::subtotal)
                 .sum();
-        double total = subtotal + (subtotal * TAX_RATE);
+        double tax = subtotal * TAX_RATE;
+        double total = subtotal + tax;
         double changeAmount = amountTendered - total;
 
         transactionHeaderDao.updateTender(currentTransactionId, "CASH", amountTendered, changeAmount);
         transactionHeaderDao.updateStatus(currentTransactionId, "COMPLETED");
+
+        // Log cash payment
+        journal.info(String.format("TX_COMPLETE|TX_ID:%d|TENDER:CASH|SUBTOTAL:%.2f|TAX:%.2f|TOTAL:%.2f|TENDERED:%.2f|CHANGE:%.2f",
+                currentTransactionId, subtotal, tax, total, amountTendered, changeAmount));
+
         dispatchEvent(PosEvent.PAYMENT_PROCESSED, changeAmount);
         currentTransactionId = -1;
     }
 
     public void processCard(String cardId, String cvv, String expiration) throws SQLException {
+        // Calculate totals for logging
+        List<TransactionItem> items = transactionItemDao.findByTransactionId(currentTransactionId);
+        double subtotal = items.stream()
+                .filter(item -> item.status().equals("ACTIVE"))
+                .mapToDouble(TransactionItem::subtotal)
+                .sum();
+        double tax = subtotal * TAX_RATE;
+        double total = subtotal + tax;
+
         transactionHeaderDao.updateTender(currentTransactionId, "CARD", 0.0, 0.0);
         transactionHeaderDao.updateStatus(currentTransactionId, "COMPLETED");
+
+        // Log card payment
+        journal.info(String.format("TX_COMPLETE|TX_ID:%d|TENDER:CARD|SUBTOTAL:%.2f|TAX:%.2f|TOTAL:%.2f",
+                currentTransactionId, subtotal, tax, total));
+
         dispatchEvent(PosEvent.PAYMENT_PROCESSED, null);
         currentTransactionId = -1;
     }
@@ -163,9 +232,25 @@ public class TransactionService implements PosEventDispatcher {
     }
 
     public void deleteSelectedItems(List<Integer> itemIds) throws SQLException {
+        // Get item details before voiding
+        List<TransactionItem> allItems = transactionItemDao.findByTransactionId(currentTransactionId);
+
         for (Integer itemId : itemIds) {
+            // Find the item to get its details for logging
+            TransactionItem itemToVoid = allItems.stream()
+                    .filter(item -> item.id() == itemId)
+                    .findFirst()
+                    .orElse(null);
+
             transactionItemDao.updateStatus(itemId, "VOIDED");
+
+            // Log each item void
+            if (itemToVoid != null) {
+                journal.info(String.format("ITEM_VOID|TX_ID:%d|ITEM_ID:%d|NAME:%s|QTY:%d|VOIDED_AMOUNT:%.2f",
+                        currentTransactionId, itemId, itemToVoid.name(), itemToVoid.quantity(), itemToVoid.subtotal()));
+            }
         }
+
         dispatchEvent(PosEvent.ITEM_VOIDED, itemIds);
     }
 

@@ -30,6 +30,10 @@ repositories {
 dependencies {
     implementation("com.h2database:h2:2.2.224")
 
+    // Logging
+    implementation("org.slf4j:slf4j-api:2.0.9")
+    implementation("ch.qos.logback:logback-classic:1.4.14")
+
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

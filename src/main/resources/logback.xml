@@ -1,0 +1,69 @@
+<configuration>
+    <!-- Console output for general application logs -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Console output for transaction journal - matches journal.log format exactly -->
+    <appender name="CONSOLE_JOURNAL" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}|%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Transaction Journal (Virtual Journal) - Simple pipe-delimited format -->
+    <appender name="JOURNAL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/transactions/journal.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Roll monthly, keep for 10 years (120 months) for tax/audit compliance -->
+            <fileNamePattern>logs/transactions/journal-%d{yyyy-MM}.log</fileNamePattern>
+            <maxHistory>120</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <!-- Simple format: timestamp|message (no logger name, level, etc.) -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}|%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Application log for general debugging -->
+    <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/application/app.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/application/app-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Error log for quick error review -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/errors/error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/errors/error-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <maxHistory>365</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %logger{50} - %msg%n%ex{full}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Transaction journal logger - writes to both console and journal file -->
+    <logger name="TRANSACTION_JOURNAL" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE_JOURNAL" />
+        <appender-ref ref="JOURNAL_FILE" />
+    </logger>
+
+    <!-- Root logger for general application logging -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="APP_FILE" />
+        <appender-ref ref="ERROR_FILE" />
+    </root>
+</configuration>

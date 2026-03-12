@@ -82,7 +82,6 @@ public class PosInterfacePolished extends JFrame {
         // Create initial transaction
         try {
             transactionService.createTransaction();
-            System.out.println("Initial transaction created");
         } catch (SQLException e) {
             showError("Failed to create initial transaction: " + e.getMessage());
         }
@@ -226,7 +225,6 @@ public class PosInterfacePolished extends JFrame {
         try {
             allProducts = priceBookService.getAllItems();
             filteredProducts = new ArrayList<>(allProducts);
-            System.out.println("Loaded " + allProducts.size() + " products for pagination");
             updateQuickKeysPage();
         } catch (SQLException e) {
             showError("Failed to load products: " + e.getMessage());
@@ -460,8 +458,6 @@ public class PosInterfacePolished extends JFrame {
         String upc = upcTextField.getText().trim();
         if (upc.isEmpty()) return;
 
-        System.out.println("UPC Enter pressed: " + upc);
-
         try {
             var result = priceBookService.getItemByUpc(upc);
             if (result.isPresent()) {
@@ -481,8 +477,6 @@ public class PosInterfacePolished extends JFrame {
     private void handleManualSearch() {
         String upc = upcTextField.getText().trim();
         if (upc.isEmpty()) return;
-
-        System.out.println("Manual search: " + upc);
 
         try {
             var result = priceBookService.getItemByUpc(upc);
@@ -513,7 +507,6 @@ public class PosInterfacePolished extends JFrame {
 
     private void addItemToSale(PriceBook item) {
         try {
-            System.out.println("Adding item to sale: " + item.name());
             transactionService.addItem(item.upc(), item.name(), item.price());
             refreshSaleDisplay();
         } catch (SQLException e) {
@@ -664,8 +657,6 @@ public class PosInterfacePolished extends JFrame {
         // Reset to first page
         currentPage = 0;
         updateQuickKeysPage();
-
-        System.out.println("Search results: " + filteredProducts.size() + " products found");
     }
 
     private void handlePriceFilterChange() {
@@ -830,7 +821,6 @@ public class PosInterfacePolished extends JFrame {
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                System.out.println("Deleting selected items: " + selectedIds);
                 transactionService.deleteSelectedItems(selectedIds);
                 refreshSaleDisplay();
             } catch (SQLException e) {
@@ -848,7 +838,6 @@ public class PosInterfacePolished extends JFrame {
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                System.out.println("Voiding transaction");
                 transactionService.voidTransaction();
                 transactionService.createTransaction();
                 refreshSaleDisplay();
@@ -868,8 +857,6 @@ public class PosInterfacePolished extends JFrame {
                     JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-
-            System.out.println("Processing exact dollar payment: $" + total);
 
             // Get transaction details
             List<TransactionItem> items = transactionService.getCurrentSaleItems();
@@ -910,8 +897,6 @@ public class PosInterfacePolished extends JFrame {
                     return;
                 }
 
-                System.out.println("Processing next dollar payment: $" + tendered);
-
                 List<TransactionItem> items = transactionService.getCurrentSaleItems();
                 double subtotal = transactionService.getTransactionSubtotal();
                 double tax = total - subtotal;
@@ -943,8 +928,6 @@ public class PosInterfacePolished extends JFrame {
                 JOptionPane.YES_NO_OPTION);
 
             if (confirm == JOptionPane.YES_OPTION) {
-                System.out.println("Processing card payment");
-
                 List<TransactionItem> items = transactionService.getCurrentSaleItems();
                 double subtotal = transactionService.getTransactionSubtotal();
                 double tax = total - subtotal;
@@ -1006,7 +989,6 @@ public class PosInterfacePolished extends JFrame {
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                System.out.println("Deleting item: " + item.id());
                 List<Integer> ids = new ArrayList<>();
                 ids.add(item.id());
                 transactionService.deleteSelectedItems(ids);
@@ -1310,7 +1292,6 @@ public class PosInterfacePolished extends JFrame {
 
         private void updateQuantity(int newQty) {
             try {
-                System.out.println("Updating item " + currentItem.id() + " quantity to " + newQty);
                 transactionService.updateQuantity(currentItem.id(), newQty, currentItem.unitPrice());
                 fireEditingStopped();
                 refreshSaleDisplay();
@@ -1432,7 +1413,6 @@ public class PosInterfacePolished extends JFrame {
 
     private void startNewTransaction() {
         try {
-            System.out.println("Starting new transaction");
             transactionService.createTransaction();
             refreshSaleDisplay();
             upcTextField.setText("");
@@ -1448,7 +1428,6 @@ public class PosInterfacePolished extends JFrame {
     }
 
     private void showError(String message) {
-        System.err.println("ERROR: " + message);
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
