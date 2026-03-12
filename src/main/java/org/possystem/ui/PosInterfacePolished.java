@@ -27,9 +27,9 @@ public class PosInterfacePolished extends JFrame {
 
     // UPC Input Components
     private JTextField upcTextField;
-    private JButton searchButton;
-    private JLabel itemInfoLabel;
-    private JButton addToCartButton;
+    private JButton clearUpcButton;
+    private JButton searchUpcButton;
+    private JPanel upcFieldPanel;
 
     // Quick Keys with Pagination and Search
     private JPanel quickKeysPanel;
@@ -78,9 +78,8 @@ public class PosInterfacePolished extends JFrame {
     private JButton payNextDollarButton;
     private JButton payCardButton;
     private JButton deleteSelectedButton;
-
-    // State
-    private PriceBook searchedItem;
+    private JButton totalButton;
+    private JButton paymentVoidButton;
 
     public PosInterfacePolished() {
         this.priceBookService = new PriceBookService();
@@ -106,15 +105,138 @@ public class PosInterfacePolished extends JFrame {
         setSize(1600, 900);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Start maximized (but with menu bar visible)
     }
 
     private void initializeComponents() {
         // UPC Input Components
         upcTextField = new JTextField(20);
-        searchButton = new JButton("Search");
-        itemInfoLabel = new JLabel("");
-        addToCartButton = new JButton("Add to Cart");
-        addToCartButton.setVisible(false);
+        upcTextField.setFont(new Font("Arial", Font.PLAIN, 16));
+        // Add right padding to make room for both icons (X and magnifying glass)
+        upcTextField.setBorder(BorderFactory.createCompoundBorder(
+            upcTextField.getBorder(),
+            BorderFactory.createEmptyBorder(0, 5, 0, 65) // Right padding for both X button and search icon
+        ));
+
+        // Create clear button (X icon) for UPC field
+        clearUpcButton = new JButton() {
+            private boolean isHovered = false;
+
+            {
+                setFocusPainted(false);
+                setBorderPainted(false);
+                setContentAreaFilled(false);
+                setOpaque(false);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setToolTipText("Clear UPC");
+                setVisible(false); // Hidden by default
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                // Set color based on hover state
+                g2d.setColor(isHovered ? Color.RED : Color.GRAY);
+
+                int size = Math.min(getWidth(), getHeight());
+                int padding = size / 4;
+                int x1 = padding;
+                int y1 = padding;
+                int x2 = size - padding;
+                int y2 = size - padding;
+
+                // Draw X (two diagonal lines)
+                g2d.drawLine(x1, y1, x2, y2); // Top-left to bottom-right
+                g2d.drawLine(x2, y1, x1, y2); // Top-right to bottom-left
+
+                g2d.dispose();
+            }
+        };
+
+        // Create search icon button (magnifying glass) for UPC field
+        searchUpcButton = new JButton() {
+            private boolean isHovered = false;
+
+            {
+                setFocusPainted(false);
+                setBorderPainted(false);
+                setContentAreaFilled(false);
+                setOpaque(false);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setToolTipText("Search UPC");
+                setVisible(true); // Always visible
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Set color based on hover state
+                Color iconColor = isHovered ? new Color(100, 149, 237) : new Color(100, 100, 100);
+                g2d.setColor(iconColor);
+
+                int size = Math.min(getWidth(), getHeight());
+                int padding = 4;
+
+                // Circle size (lens)
+                int circleSize = (int) (size * 0.55);
+                int centerX = size / 2 - 2;
+                int centerY = size / 2 - 2;
+
+                // Draw magnifying glass circle
+                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2d.drawOval(centerX - circleSize / 2, centerY - circleSize / 2, circleSize, circleSize);
+
+                // Draw magnifying glass handle
+                g2d.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int handleStartX = centerX + (int) (circleSize / 2 * 0.6);
+                int handleStartY = centerY + (int) (circleSize / 2 * 0.6);
+                int handleLength = (int) (circleSize * 0.6);
+                int handleEndX = handleStartX + (int) (handleLength * 0.707);
+                int handleEndY = handleStartY + (int) (handleLength * 0.707);
+                g2d.drawLine(handleStartX, handleStartY, handleEndX, handleEndY);
+
+                g2d.dispose();
+            }
+        };
+
+        // Create panel to hold UPC field with icon buttons overlay
+        upcFieldPanel = new JPanel(null); // Use null layout for absolute positioning
+        upcFieldPanel.setOpaque(false);
 
         // Quick Keys Panel
         quickKeysPanel = new JPanel(new BorderLayout(5, 5));
@@ -502,18 +624,68 @@ public class PosInterfacePolished extends JFrame {
         totalLabel.setFont(new Font("Arial", Font.BOLD, 20));
 
         // Actions Panel Buttons
-        voidTransactionButton = new JButton("Void Transaction");
-        payExactButton = new JButton("Pay Exact Dollar");
-        payNextDollarButton = new JButton("Pay Next Dollar");
-        payCardButton = new JButton("Pay Card");
-        deleteSelectedButton = new JButton("Delete Selected");
+        voidTransactionButton = new JButton("Void Basket");
+        payExactButton = new JButton("Exact Dollar");
+        payNextDollarButton = new JButton("Next Dollar");
+        payCardButton = new JButton("Card");
+        deleteSelectedButton = new JButton("Void Line/s");
+        totalButton = new JButton("Total");
 
-        // Style action buttons
-        voidTransactionButton.setBackground(new Color(255, 100, 100));
-        payExactButton.setBackground(new Color(100, 200, 100));
-        payNextDollarButton.setBackground(new Color(150, 220, 150));
-        payCardButton.setBackground(new Color(100, 150, 255));
+        // Style action buttons with colors, rounded corners, and better text visibility
+        // Set Void Basket to red (warning)
+        voidTransactionButton.setBackground(new Color(220, 53, 69));
+        voidTransactionButton.setOpaque(true);
+        voidTransactionButton.setBorderPainted(false);
+        voidTransactionButton.setForeground(Color.WHITE);
+        voidTransactionButton.setFont(new Font("Arial", Font.BOLD, 16));
+
+        // Set payment buttons to green
+        payExactButton.setBackground(new Color(40, 167, 69));
+        payExactButton.setOpaque(true);
+        payExactButton.setBorderPainted(false);
+        payExactButton.setForeground(Color.WHITE);
+        payExactButton.setFont(new Font("Arial", Font.BOLD, 16));
+
+        payNextDollarButton.setBackground(new Color(40, 167, 69));
+        payNextDollarButton.setOpaque(true);
+        payNextDollarButton.setBorderPainted(false);
+        payNextDollarButton.setForeground(Color.WHITE);
+        payNextDollarButton.setFont(new Font("Arial", Font.BOLD, 16));
+
+        payCardButton.setBackground(new Color(40, 167, 69));
+        payCardButton.setOpaque(true);
+        payCardButton.setBorderPainted(false);
+        payCardButton.setForeground(Color.WHITE);
+        payCardButton.setFont(new Font("Arial", Font.BOLD, 16));
+
+        // Delete Selected - orange
         deleteSelectedButton.setBackground(new Color(255, 150, 100));
+        deleteSelectedButton.setOpaque(true);
+        deleteSelectedButton.setBorderPainted(false);
+        deleteSelectedButton.setForeground(Color.WHITE); // White text
+        deleteSelectedButton.setFont(new Font("Arial", Font.BOLD, 14));
+
+        // Total - bright green
+        totalButton.setBackground(new Color(50, 205, 50));
+        totalButton.setOpaque(true);
+        totalButton.setBorderPainted(false);
+        totalButton.setForeground(Color.WHITE); // White text
+        totalButton.setFont(new Font("Arial", Font.BOLD, 16));
+
+        // Apply text outlines to all action buttons for better visibility
+        applyTextOutline(voidTransactionButton);
+        applyTextOutline(payExactButton);
+        applyTextOutline(payNextDollarButton);
+        applyTextOutline(payCardButton);
+        applyTextOutline(deleteSelectedButton);
+        applyTextOutline(totalButton);
+
+        // Initially disable payment buttons until Total is pressed
+        payExactButton.setEnabled(false);
+        payNextDollarButton.setEnabled(false);
+        payCardButton.setEnabled(false);
+
+        // Total button is always enabled - will show dialog if cart is empty
     }
 
     private void loadAllProducts() {
@@ -601,7 +773,7 @@ public class PosInterfacePolished extends JFrame {
                 : item.name();
 
             JButton btn = new JButton("<html><center>" +
-                displayName + "<br>$" + String.format("%.2f", item.price()) +
+                displayName + "<br><font color='green'>$" + String.format("%.2f", item.price()) + "</font>" +
                 "</center></html>");
             btn.setPreferredSize(new Dimension(120, 80));
             btn.addActionListener(e -> addItemToSale(item));
@@ -629,10 +801,6 @@ public class PosInterfacePolished extends JFrame {
 
     private void layoutComponents() {
         setLayout(new BorderLayout(10, 10));
-
-        // TOP: UPC Input Panel
-        JPanel upcPanel = createUpcInputPanel();
-        add(upcPanel, BorderLayout.NORTH);
 
         // CENTER/RIGHT: Split for Quick Keys (top) and Actions (bottom)
         JPanel rightPanel = new JPanel(new BorderLayout(10, 10));
@@ -758,10 +926,94 @@ public class PosInterfacePolished extends JFrame {
 
         quickKeysContainer.add(mainContentPanel, BorderLayout.CENTER);
         quickKeysPanel.add(quickKeysContainer, BorderLayout.CENTER);
-        rightPanel.add(quickKeysPanel, BorderLayout.CENTER);
 
-        // Lower: Actions Panel
-        rightPanel.add(createActionsPanel(), BorderLayout.SOUTH);
+        // Create vertical split pane for Quick Keys (60%) and Actions (40%)
+        JPanel actionsPanel = createActionsPanel();
+        JSplitPane verticalSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, quickKeysPanel, actionsPanel);
+        verticalSplitPane.setResizeWeight(0.6); // Quick Keys gets 60%, Actions gets 40%
+        verticalSplitPane.setDividerSize(8);
+        verticalSplitPane.setContinuousLayout(true);
+        verticalSplitPane.setOneTouchExpandable(false);
+
+        // Replace default divider with custom visual divider (horizontal orientation)
+        verticalSplitPane.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
+            @Override
+            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
+                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
+                    private boolean isHovered = false;
+
+                    {
+                        addMouseListener(new java.awt.event.MouseAdapter() {
+                            @Override
+                            public void mouseEntered(java.awt.event.MouseEvent e) {
+                                isHovered = true;
+                                repaint();
+                            }
+
+                            @Override
+                            public void mouseExited(java.awt.event.MouseEvent e) {
+                                isHovered = false;
+                                repaint();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void paint(Graphics g) {
+                        Graphics2D g2d = (Graphics2D) g.create();
+                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                        int width = getWidth();
+                        int height = getHeight();
+
+                        // Background color changes on hover
+                        Color bgColor = isHovered ? new Color(100, 149, 237) : new Color(180, 180, 180);
+                        g2d.setColor(bgColor);
+                        g2d.fillRect(0, 0, width, height);
+
+                        // Draw horizontal grip marks (dots)
+                        g2d.setColor(isHovered ? Color.WHITE : new Color(120, 120, 120));
+                        int centerY = height / 2;
+                        int gripSpacing = 4;
+                        int gripDotSize = 3;
+                        int startX = width / 2 - (gripSpacing * 4); // 4 dots left of center
+
+                        // Draw 9 grip dots horizontally
+                        for (int i = 0; i < 9; i++) {
+                            int x = startX + (i * gripSpacing);
+                            if (x >= 10 && x <= width - 10) {
+                                g2d.fillOval(x, centerY - gripDotSize / 2, gripDotSize, gripDotSize);
+                            }
+                        }
+
+                        // Add subtle double arrows on hover to indicate draggability (up/down)
+                        if (isHovered) {
+                            g2d.setColor(Color.WHITE);
+                            int arrowX = width / 2;
+                            // Up arrow
+                            int[] xPointsUp = {arrowX, arrowX - 2, arrowX - 4};
+                            int[] yPointsUp = {centerY - 3, centerY - 1, centerY - 3};
+                            g2d.fillPolygon(xPointsUp, yPointsUp, 3);
+                            int[] xPointsUp2 = {arrowX, arrowX + 2, arrowX + 4};
+                            int[] yPointsUp2 = {centerY - 3, centerY - 1, centerY - 3};
+                            g2d.fillPolygon(xPointsUp2, yPointsUp2, 3);
+
+                            // Down arrow
+                            int[] xPointsDown = {arrowX, arrowX - 2, arrowX - 4};
+                            int[] yPointsDown = {centerY + 3, centerY + 1, centerY + 3};
+                            g2d.fillPolygon(xPointsDown, yPointsDown, 3);
+                            int[] xPointsDown2 = {arrowX, arrowX + 2, arrowX + 4};
+                            int[] yPointsDown2 = {centerY + 3, centerY + 1, centerY + 3};
+                            g2d.fillPolygon(xPointsDown2, yPointsDown2, 3);
+                        }
+
+                        g2d.dispose();
+                    }
+                };
+            }
+        });
+
+        rightPanel.add(verticalSplitPane, BorderLayout.CENTER);
 
         // Create resizable split pane with Current Sale on left and Quick Keys/Actions on right
         JPanel currentSalePanel = createCurrentSalePanel();
@@ -859,18 +1111,178 @@ public class PosInterfacePolished extends JFrame {
             }
         });
 
+        // Add custom header bar
+        add(createHeaderPanel(), BorderLayout.NORTH);
         add(mainSplitPane, BorderLayout.CENTER);
     }
 
-    private JPanel createUpcInputPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        panel.setBorder(BorderFactory.createTitledBorder("Barcode / UPC Entry"));
+    private JPanel createHeaderPanel() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(45, 45, 48)); // Dark gray background
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        headerPanel.setPreferredSize(new Dimension(0, 50));
 
-        panel.add(new JLabel("UPC:"));
-        panel.add(upcTextField);
-        panel.add(searchButton);
-        panel.add(itemInfoLabel);
-        panel.add(addToCartButton);
+        // Title label
+        JLabel titleLabel = new JLabel("POS System");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+
+        // Close button
+        JButton closeButton = new JButton() {
+            private boolean isHovered = false;
+
+            {
+                setFocusPainted(false);
+                setBorderPainted(false);
+                setContentAreaFilled(false);
+                setOpaque(false);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setPreferredSize(new Dimension(40, 40));
+                setToolTipText("Close");
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+
+                addActionListener(e -> {
+                    int result = JOptionPane.showConfirmDialog(
+                        PosInterfacePolished.this,
+                        "Are you sure you want to close the POS System?",
+                        "Confirm Close",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE
+                    );
+                    if (result == JOptionPane.YES_OPTION) {
+                        System.exit(0);
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int size = Math.min(getWidth(), getHeight());
+                int padding = size / 3;
+
+                // Background circle on hover
+                if (isHovered) {
+                    g2d.setColor(new Color(232, 17, 35)); // Red background on hover
+                    g2d.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 4, 4);
+                }
+
+                // Draw X
+                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2d.setColor(isHovered ? Color.WHITE : new Color(200, 200, 200));
+
+                int x1 = padding;
+                int y1 = padding;
+                int x2 = size - padding;
+                int y2 = size - padding;
+
+                g2d.drawLine(x1, y1, x2, y2); // Top-left to bottom-right
+                g2d.drawLine(x2, y1, x1, y2); // Top-right to bottom-left
+
+                g2d.dispose();
+            }
+        };
+
+        // Add only the close button to the header
+        headerPanel.add(closeButton, BorderLayout.EAST);
+
+        // Add window dragging functionality to header
+        final Point[] mouseDownCompCoords = {null};
+
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    Point currCoords = e.getLocationOnScreen();
+                    setLocation(currCoords.x - mouseDownCompCoords[0].x,
+                               currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
+
+        return headerPanel;
+    }
+
+    private JPanel createUpcInputPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        // UPC label
+        JLabel upcLabel = new JLabel("UPC:");
+        upcLabel.setFont(new Font("Arial", Font.BOLD, 16));
+
+        // Match UPC field height to combo box natural height (same as Quick Keys search field)
+        int fieldHeight = priceFilterCombo.getPreferredSize().height;
+        upcTextField.setPreferredSize(new Dimension(300, fieldHeight));
+        upcTextField.setMinimumSize(new Dimension(200, fieldHeight));
+
+        // Setup UPC field panel with overlay buttons
+        upcFieldPanel.setPreferredSize(new Dimension(300, fieldHeight));
+        upcFieldPanel.setMinimumSize(new Dimension(200, fieldHeight));
+
+        // Add component listener to position elements when panel is resized
+        upcFieldPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int panelWidth = upcFieldPanel.getWidth();
+                int panelHeight = upcFieldPanel.getHeight();
+
+                // UPC field takes full width
+                upcTextField.setBounds(0, 0, panelWidth, panelHeight);
+
+                int btnSize = panelHeight - 8;
+                int btnY = (panelHeight - btnSize) / 2;
+
+                // Both icons on the right side:
+                // Magnifying glass icon positioned on the far right
+                int searchIconX = panelWidth - btnSize - 6;
+                searchUpcButton.setBounds(searchIconX, btnY, btnSize, btnSize);
+
+                // Clear X button positioned to the left of magnifying glass
+                int clearBtnX = searchIconX - btnSize - 4;
+                clearUpcButton.setBounds(clearBtnX, btnY, btnSize, btnSize);
+            }
+        });
+
+        upcFieldPanel.add(upcTextField);
+        upcFieldPanel.add(searchUpcButton);
+        upcFieldPanel.add(clearUpcButton);
+
+        // Ensure buttons are on top (higher z-order)
+        upcFieldPanel.setComponentZOrder(searchUpcButton, 0);
+        upcFieldPanel.setComponentZOrder(clearUpcButton, 0);
+
+        panel.add(upcLabel, BorderLayout.WEST);
+        panel.add(upcFieldPanel, BorderLayout.CENTER);
 
         return panel;
     }
@@ -898,32 +1310,110 @@ public class PosInterfacePolished extends JFrame {
     }
 
     private JPanel createActionsPanel() {
-        JPanel panel = new JPanel(new GridLayout(3, 2, 10, 10));
-        panel.setBorder(BorderFactory.createTitledBorder("Actions"));
-        panel.setPreferredSize(new Dimension(0, 180));
+        // Main actions container with BorderLayout
+        JPanel actionsContainer = new JPanel(new BorderLayout(5, 5));
+        actionsContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        panel.add(deleteSelectedButton);
-        panel.add(voidTransactionButton);
-        panel.add(payExactButton);
-        panel.add(payNextDollarButton);
-        panel.add(payCardButton);
-        panel.add(new JLabel("")); // Empty spacer
+        // Center panel - Transaction Actions gets more space, Payment gets less
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // LEFT: Transaction Actions (with UPC search) - 50% width
+        JPanel transactionSubZone = new JPanel(new BorderLayout(5, 5));
+        transactionSubZone.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Transaction Actions"),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        // UPC panel at the top of Transaction Actions
+        JPanel upcPanel = createUpcInputPanel();
+        transactionSubZone.add(upcPanel, BorderLayout.NORTH);
+
+        // Transaction buttons in dynamic grid layout (horizontal - 1 row, 3 columns)
+        JPanel transactionButtonsGrid = new JPanel(new GridLayout(1, 3, 10, 10));
+        transactionButtonsGrid.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        // Buttons will automatically resize to fill available space
+        transactionButtonsGrid.add(deleteSelectedButton);
+        transactionButtonsGrid.add(voidTransactionButton);
+        transactionButtonsGrid.add(totalButton);
+
+        transactionSubZone.add(transactionButtonsGrid, BorderLayout.CENTER);
+
+        // RIGHT: Payment - takes less space (fixed width)
+        JPanel paymentSubZone = new JPanel(new BorderLayout(5, 5));
+        paymentSubZone.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Payment"),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        paymentSubZone.setPreferredSize(new Dimension(320, 0)); // Fixed width, Transaction Actions gets remaining space
+
+        // Payment buttons in dynamic grid layout (buttons resize with available space)
+        JPanel paymentButtonsGrid = new JPanel(new GridLayout(2, 2, 10, 10));
+        paymentButtonsGrid.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        // Add Void Basket button to Payment zone (colored red)
+        paymentVoidButton = new JButton("Void Basket");
+        paymentVoidButton.setBackground(new Color(220, 53, 69)); // Red - warning color
+        paymentVoidButton.setOpaque(true);
+        paymentVoidButton.setBorderPainted(false);
+        paymentVoidButton.setForeground(Color.WHITE);
+        paymentVoidButton.setFont(new Font("Arial", Font.BOLD, 16));
+        applyTextOutline(paymentVoidButton); // Apply text outline for better visibility
+        paymentVoidButton.addActionListener(e -> handleVoidTransaction());
+        paymentVoidButton.setEnabled(false); // Disabled until Total is pressed
+
+        // Buttons will automatically resize to fill available space
+        paymentButtonsGrid.add(payExactButton);
+        paymentButtonsGrid.add(payNextDollarButton);
+        paymentButtonsGrid.add(payCardButton);
+        paymentButtonsGrid.add(paymentVoidButton);
+
+        paymentSubZone.add(paymentButtonsGrid, BorderLayout.CENTER);
+
+        // Add both sub-zones to center panel (Transaction Actions gets more space)
+        centerPanel.add(transactionSubZone, BorderLayout.CENTER);
+        centerPanel.add(paymentSubZone, BorderLayout.EAST);
+
+        actionsContainer.add(centerPanel, BorderLayout.CENTER);
 
         // Initially disable Delete Selected
         deleteSelectedButton.setEnabled(false);
 
-        return panel;
+        return actionsContainer;
     }
 
     private void attachEventHandlers() {
-        // UPC TextField - Enter key triggers auto-add
-        upcTextField.addActionListener(e -> handleUpcEnter());
+        // UPC TextField - Enter key adds item directly to cart
+        upcTextField.addActionListener(e -> handleUpcSearch());
 
-        // Search button - Manual search
-        searchButton.addActionListener(e -> handleManualSearch());
+        // UPC search icon button - trigger search (same as Enter key)
+        searchUpcButton.addActionListener(e -> handleUpcSearch());
 
-        // Add to Cart button
-        addToCartButton.addActionListener(e -> handleManualAddToCart());
+        // UPC clear button action - clear UPC field
+        clearUpcButton.addActionListener(e -> upcTextField.setText(""));
+
+        // Show/hide clear button based on UPC field content
+        upcTextField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                updateUpcClearButtonVisibility();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                updateUpcClearButtonVisibility();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                updateUpcClearButtonVisibility();
+            }
+
+            private void updateUpcClearButtonVisibility() {
+                clearUpcButton.setVisible(!upcTextField.getText().isEmpty());
+            }
+        });
 
         // Pagination
         prevPageButton.addActionListener(e -> {
@@ -1017,6 +1507,7 @@ public class PosInterfacePolished extends JFrame {
         // Action buttons
         deleteSelectedButton.addActionListener(e -> handleDeleteSelected());
         voidTransactionButton.addActionListener(e -> handleVoidTransaction());
+        totalButton.addActionListener(e -> handleTotal());
         payExactButton.addActionListener(e -> handlePayExactDollar());
         payNextDollarButton.addActionListener(e -> handlePayNextDollar());
         payCardButton.addActionListener(e -> handlePayCard());
@@ -1024,54 +1515,21 @@ public class PosInterfacePolished extends JFrame {
 
     // ============ Event Handlers ============
 
-    private void handleUpcEnter() {
+    private void handleUpcSearch() {
         String upc = upcTextField.getText().trim();
-        if (upc.isEmpty()) return;
-
-        try {
-            var result = priceBookService.getItemByUpc(upc);
-            if (result.isPresent()) {
-                PriceBook item = result.get();
-                addItemToSale(item);
-                upcTextField.setText("");
-                itemInfoLabel.setText("");
-                addToCartButton.setVisible(false);
-            } else {
-                showError("Item not found: " + upc);
+        if (!upc.isEmpty()) {
+            try {
+                var result = priceBookService.getItemByUpc(upc);
+                if (result.isPresent()) {
+                    PriceBook item = result.get();
+                    addItemToSale(item);
+                    upcTextField.setText("");
+                } else {
+                    showError("Item not found: " + upc);
+                }
+            } catch (SQLException ex) {
+                showError("Database error: " + ex.getMessage());
             }
-        } catch (SQLException e) {
-            showError("Database error: " + e.getMessage());
-        }
-    }
-
-    private void handleManualSearch() {
-        String upc = upcTextField.getText().trim();
-        if (upc.isEmpty()) return;
-
-        try {
-            var result = priceBookService.getItemByUpc(upc);
-            if (result.isPresent()) {
-                searchedItem = result.get();
-                itemInfoLabel.setText(String.format("%s - $%.2f",
-                    searchedItem.name(), searchedItem.price()));
-                addToCartButton.setVisible(true);
-            } else {
-                itemInfoLabel.setText("Item not found");
-                addToCartButton.setVisible(false);
-                searchedItem = null;
-            }
-        } catch (SQLException e) {
-            showError("Database error: " + e.getMessage());
-        }
-    }
-
-    private void handleManualAddToCart() {
-        if (searchedItem != null) {
-            addItemToSale(searchedItem);
-            upcTextField.setText("");
-            itemInfoLabel.setText("");
-            addToCartButton.setVisible(false);
-            searchedItem = null;
         }
     }
 
@@ -1418,11 +1876,71 @@ public class PosInterfacePolished extends JFrame {
                 transactionService.voidTransaction();
                 transactionService.createTransaction();
                 refreshSaleDisplay();
+
+                // Reset button states after voiding
+                // Re-enable transaction controls
+                upcTextField.setEnabled(true);
+                searchUpcButton.setEnabled(true);
+                clearUpcButton.setEnabled(true);
+                voidTransactionButton.setEnabled(true);
+                voidTransactionButton.repaint();
+                totalButton.setEnabled(true); // Re-enable Total button after voiding
+                totalButton.repaint();
+
+                // Disable payment buttons until Total is pressed
+                payExactButton.setEnabled(false);
+                payExactButton.repaint();
+                payNextDollarButton.setEnabled(false);
+                payNextDollarButton.repaint();
+                payCardButton.setEnabled(false);
+                payCardButton.repaint();
+                paymentVoidButton.setEnabled(false);
+                paymentVoidButton.repaint();
+
                 JOptionPane.showMessageDialog(this, "Transaction voided", "Success",
                     JOptionPane.INFORMATION_MESSAGE);
             } catch (SQLException e) {
                 showError("Failed to void transaction: " + e.getMessage());
             }
+        }
+    }
+
+    private void handleTotal() {
+        try {
+            double total = transactionService.getTransactionTotal();
+            if (total == 0) {
+                JOptionPane.showMessageDialog(this, "Cart is empty. Add items before pressing Total.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            // Finalize the basket - lock transaction modifications
+            // Disable transaction action controls
+            upcTextField.setEnabled(false);
+            searchUpcButton.setEnabled(false);
+            clearUpcButton.setEnabled(false);
+            deleteSelectedButton.setEnabled(false);
+            voidTransactionButton.setEnabled(false);
+            voidTransactionButton.repaint();
+            totalButton.setEnabled(false);
+            totalButton.repaint();
+
+            // Enable payment buttons
+            payExactButton.setEnabled(true);
+            payExactButton.repaint();
+            payNextDollarButton.setEnabled(true);
+            payNextDollarButton.repaint();
+            payCardButton.setEnabled(true);
+            payCardButton.repaint();
+            paymentVoidButton.setEnabled(true);
+            paymentVoidButton.repaint();
+
+            JOptionPane.showMessageDialog(this,
+                String.format("Total: $%.2f\n\nBasket finalized. Please select payment method.", total),
+                "Ready for Payment",
+                JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLException e) {
+            showError("Failed to calculate total: " + e.getMessage());
         }
     }
 
@@ -1527,6 +2045,8 @@ public class PosInterfacePolished extends JFrame {
 
             // Update Delete Selected button state
             updateDeleteSelectedButton();
+
+            // Note: Total button is always enabled, will show dialog if cart is empty
 
             // Update totals
             double subtotal = transactionService.getTransactionSubtotal();
@@ -1993,8 +2513,27 @@ public class PosInterfacePolished extends JFrame {
             transactionService.createTransaction();
             refreshSaleDisplay();
             upcTextField.setText("");
-            itemInfoLabel.setText("");
-            addToCartButton.setVisible(false);
+
+            // Reset button states for new transaction
+            // Re-enable transaction controls
+            upcTextField.setEnabled(true);
+            searchUpcButton.setEnabled(true);
+            clearUpcButton.setEnabled(true);
+            voidTransactionButton.setEnabled(true);
+            voidTransactionButton.repaint();
+            totalButton.setEnabled(true); // Re-enable Total button for new transaction
+            totalButton.repaint();
+
+            // Disable payment buttons until Total is pressed
+            payExactButton.setEnabled(false);
+            payExactButton.repaint();
+            payNextDollarButton.setEnabled(false);
+            payNextDollarButton.repaint();
+            payCardButton.setEnabled(false);
+            payCardButton.repaint();
+            paymentVoidButton.setEnabled(false);
+            paymentVoidButton.repaint();
+
             JOptionPane.showMessageDialog(this,
                 "Ready for new transaction",
                 "New Transaction",
@@ -2002,6 +2541,85 @@ public class PosInterfacePolished extends JFrame {
         } catch (SQLException e) {
             showError("Failed to create new transaction: " + e.getMessage());
         }
+    }
+
+    /**
+     * Apply text outline effect to button for better visibility with rounded corners
+     * Handles enabled/disabled state with color schemes
+     */
+    private void applyTextOutline(JButton button) {
+        // Remove border so we can draw our own rounded one
+        button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        button.setContentAreaFilled(false);
+
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                JButton btn = (JButton) c;
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                int arcSize = 12; // Rounded corner size
+
+                // Determine button color based on enabled/disabled state
+                Color buttonColor = btn.getBackground();
+                Color displayColor;
+                Color textColor;
+
+                if (btn.isEnabled()) {
+                    // ENABLED: Use original colors
+                    displayColor = buttonColor;
+                    textColor = btn.getForeground();
+                } else {
+                    // DISABLED: Use darker version of original color (50% darker)
+                    displayColor = new Color(
+                        (int)(buttonColor.getRed() * 0.5),
+                        (int)(buttonColor.getGreen() * 0.5),
+                        (int)(buttonColor.getBlue() * 0.5)
+                    );
+                    textColor = new Color(180, 180, 180); // Lighter gray text for disabled
+                }
+
+                // Draw button background with rounded edges
+                g2d.setColor(displayColor);
+                g2d.fillRoundRect(0, 0, btn.getWidth() - 1, btn.getHeight() - 1, arcSize, arcSize);
+
+                // Draw rounded border
+                g2d.setColor(displayColor.darker());
+                g2d.setStroke(new BasicStroke(2f));
+                g2d.drawRoundRect(0, 0, btn.getWidth() - 1, btn.getHeight() - 1, arcSize, arcSize);
+
+                // Draw button text with outline
+                String text = btn.getText();
+                FontMetrics fm = g2d.getFontMetrics(btn.getFont());
+                int textWidth = fm.stringWidth(text);
+                int textHeight = fm.getHeight();
+                int x = (btn.getWidth() - textWidth) / 2;
+                int y = (btn.getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+
+                g2d.setFont(btn.getFont());
+
+                // Draw text outline (stroke) - only if button is enabled
+                if (btn.isEnabled()) {
+                    g2d.setColor(new Color(0, 0, 0, 150)); // Semi-transparent black outline
+                    g2d.setStroke(new BasicStroke(3f));
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            if (dx != 0 || dy != 0) {
+                                g2d.drawString(text, x + dx, y + dy);
+                            }
+                        }
+                    }
+                }
+
+                // Draw text fill with appropriate color
+                g2d.setColor(textColor);
+                g2d.drawString(text, x, y);
+
+                g2d.dispose();
+            }
+        });
     }
 
     private void showError(String message) {

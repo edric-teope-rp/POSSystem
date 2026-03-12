@@ -1,0 +1,181 @@
+I'm continuing work on my Java POS System project. Here's the context from my previous session:
+
+PROJECT LOCATION: /Users/ed/IdeaProjects/POSSystem
+
+CURRENT STATE:
+- Branch: v1.5-ui-polish (working branch for UI improvements)
+- Main Branch: main
+- Build: ✅ Successful
+- Tech: Java 25, Gradle, H2 Database, Swing GUI, SLF4J+Logback
+- Status: Uncommitted changes in PosInterfacePolished.java
+
+PROJECT ROADMAP (3 PHASES):
+
+PHASE 1: Standalone POS System (CURRENT PHASE)
+  Component 1: Lock Screen
+    - Image carousel cycling 3-5 images
+    - Unlock on any screen click
+    - Auto-display when system goes idle
+    - Status: ❌ Not yet implemented
+
+  Component 2: POS Interface (CURRENT WORK)
+    - Main transaction interface (Quick Keys, Current Sale, Actions zones)
+    - Status: ✅ Core complete | 🔨 UI polish in progress
+
+  Component 3: Receipt
+    - Receipt display and printing
+    - Button functionality verification needed
+    - Status: ⚠️ Needs polishing and testing
+
+PHASE 2: Multi-POS Journal Viewer
+  - Java socket connection to other POS systems
+  - Display virtual journals from remote POS (console or GUI)
+  - Save remote journals to separate log folder (not logs/transactions/)
+  - Real-time monitoring of multiple POS terminals
+  - Status: ❌ Not started (future work)
+
+PHASE 3: Discount Service (Spring Boot Microservice)
+  - Spring Boot REST API for discount functionality
+  - Discount scope/rules: TBD (details coming in Phase 3)
+  - Docker containerization
+  - AWS deployment
+  - Integration with POS system
+  - Status: ❌ Not started (future work)
+
+CURRENT FOCUS: Phase 1, Component 2 - POS Interface UI polish
+
+WHAT WE'VE COMPLETED SO FAR:
+
+v1.4 - Transaction Logging System:
+✅ Implemented transaction journaling with SLF4J + Logback
+✅ Virtual journal format: YYYY-MM-DD HH:mm:ss.SSS|ACTION|DETAILS
+✅ 10-year retention for compliance, monthly rotation
+✅ Console output matches journal.log format
+✅ Codebase cleanup (removed debug statements, deleted obsolete files)
+
+v1.5 - UI Polish (In Progress):
+✅ Actions Zone redesigned into two sub-zones:
+   - Transaction Actions (left): UPC search + "Void Line/s" + "Void Basket" + "Total"
+   - Payment (right): "Pay Exact" + "Pay Next Dollar" + "Pay Card" + "Void Basket"
+✅ Custom split pane dividers (vertical & horizontal) with hover effects and grip indicators
+✅ Button styling system:
+   - Rounded corners (12px arc)
+   - Text outlines for visibility
+   - Color schemes: Red (void actions), Green (payments), Orange (delete)
+   - Enabled/disabled states (50% darker when disabled)
+   - All button text in white
+✅ Total button: Always enabled, shows dialog if cart is empty
+✅ UPC search relocated from separate panel to Transaction Actions sub-zone
+✅ Dynamic responsive button grids (GridLayout)
+✅ Button renaming: "Delete Selected" → "Void Line/s", "Void Transaction" → "Void Basket"
+
+KEY FILES:
+- Main entry: src/main/java/org/possystem/Main.java
+- UI file (ONLY): src/main/java/org/possystem/ui/PosInterfacePolished.java
+- Transaction logic: src/main/java/org/possystem/service/TransactionService.java
+- Logging config: src/main/resources/logback.xml
+- Transaction logs: logs/transactions/journal.log (NEVER delete - compliance)
+
+SYSTEM ARCHITECTURE:
+
+UI Zones (PosInterfacePolished.java):
+1. Quick Keys (Top 60% of right panel)
+   - Paginated product grid with responsive sizing
+   - Search field with auto-suggest
+   - Filter dropdowns (Category, Min/Max Price)
+   - Product buttons with dynamic grid layout
+
+2. Current Sale (Left panel)
+   - Custom table with checkboxes
+   - Trash icon column for item deletion
+   - Quantity +/- editors
+   - Total display at bottom
+
+3. Actions (Bottom 40% of right panel)
+   - Transaction Actions sub-zone (left, takes more space)
+   - Payment sub-zone (right, fixed 320px width)
+   - Dynamic button grids
+
+Transaction Service (TransactionService.java):
+- Business logic for all financial operations
+- Automatic transaction journal logging
+- Methods: createTransaction(), addItem(), voidItem(), voidTransaction(), processCash(), processCard()
+- Tax rate: 7% (TAX_RATE = 0.07)
+
+IMPORTANT NOTES:
+❌ Do NOT add System.out.println() for debugging (use proper logger)
+✅ Transaction operations already logged automatically to journal.log
+✅ Console output matches journal.log format exactly
+❌ Never delete transaction journal files (compliance requirement)
+✅ Only UI file is PosInterfacePolished.java (PosInterface.java was deleted)
+
+WHAT'S NEXT - PHASE 1 UI POLISH (CHECKLIST APPROACH):
+
+The user has a checklist of UI improvements they want to go through. We'll work through them step-by-step:
+
+APPROACH (CRITICAL):
+1. User shares ONE improvement from their checklist
+2. I implement that specific change only
+3. User tests it
+4. We revise if needed
+5. Move to next item
+
+This gives the user full control - no surprises, no over-engineering, just focused incremental improvements.
+
+AREAS NOT YET POLISHED:
+1. Quick Keys Zone
+   - Button sizing and spacing
+   - Pagination controls styling
+   - Search field appearance
+   - Filter dropdowns
+   - Product button hover effects
+   - Font sizes and readability
+
+2. Current Sale Zone
+   - Table header styling
+   - Row spacing and padding
+   - Checkbox appearance
+   - Trash icon sizing
+   - Quantity editor styling
+   - Total display formatting
+   - Empty cart state message
+
+3. Overall Polish
+   - Color scheme consistency
+   - Split pane proportions fine-tuning
+   - Minimum window size constraints
+   - Tab navigation order
+   - Keyboard shortcuts
+   - Focus indicators
+   - Dialog styling (error, confirmation)
+   - Edge cases (long names, large quantities, empty states)
+
+MY PREFERENCES:
+- Professional, efficient, and scalable code
+- Step-by-step approach - ONE improvement at a time
+- Clean code - no unnecessary changes or over-engineering
+- Test after each change before moving to the next
+- Clear explanations of what you're doing and why
+
+SESSION START INSTRUCTIONS:
+1. Confirm you see the project at /Users/ed/IdeaProjects/POSSystem
+2. Verify current branch is v1.5-ui-polish (or create if needed)
+3. Confirm build is successful (./gradlew build)
+4. Acknowledge you understand the step-by-step checklist approach
+5. Wait for me to provide the first item from my checklist
+
+DO NOT:
+- Run the application automatically
+- Make suggestions or ask questions about what to polish
+- Start making changes without my specific instruction
+- Work on multiple items at once
+
+DO:
+- Wait for me to provide ONE specific improvement from my checklist
+- Implement exactly what I ask for
+- Build and verify compilation
+- Wait for my testing feedback before moving to the next item
+
+Read the full detailed handoff in: HANDOFF_PROMPT.md
+
+Let's continue the UI polish, one step at a time, with full control!
