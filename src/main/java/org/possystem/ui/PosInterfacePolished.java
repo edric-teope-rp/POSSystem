@@ -37,14 +37,20 @@ public class PosInterfacePolished extends JFrame {
     private List<PriceBook> allProducts;
     private List<PriceBook> filteredProducts;
     private int currentPage = 0;
-    private static final int ITEMS_PER_PAGE_FULL = 12;  // 3x4 grid
-    private static final int ITEMS_PER_PAGE_COMPACT = 6; // 3x2 grid
     private static final int SUGGESTION_THRESHOLD = 3;
-    private int currentItemsPerPage = ITEMS_PER_PAGE_FULL;
+    private int currentItemsPerPage = 12; // Will be calculated dynamically
+
+    // Button dimensions for grid calculation
+    private static final int BUTTON_WIDTH = 120;
+    private static final int BUTTON_HEIGHT = 80;
+    private static final int GRID_SPACING = 10;
     private JButton prevPageButton;
     private JButton nextPageButton;
     private JLabel pageLabel;
     private JTextField searchField;
+    private JButton searchIconButton;
+    private JButton clearSearchButton;
+    private JPanel searchFieldPanel;
     private JPanel suggestionScrollPanel;
     private JPanel suggestionContainer;
     private JComboBox<String> priceFilterCombo;
@@ -54,6 +60,12 @@ public class PosInterfacePolished extends JFrame {
     private JPanel salePanel;
     private JTable saleTable;
     private SaleTableModel saleTableModel;
+    private JSplitPane mainSplitPane;
+
+    // Current Sale width constraints
+    private static final int CURRENT_SALE_MIN_WIDTH = 400;
+    private static final int CURRENT_SALE_MAX_WIDTH = 800;
+    private static final int CURRENT_SALE_DEFAULT_WIDTH = 620;
 
     // Totals Display
     private JLabel subtotalLabel;
@@ -109,9 +121,134 @@ public class PosInterfacePolished extends JFrame {
         quickKeysPanel.setBorder(BorderFactory.createTitledBorder("Quick Keys / All Products"));
         quickKeysGridPanel = new JPanel(new GridLayout(4, 3, 10, 10)); // 4 rows x 3 columns
 
-        // Search field with auto-suggest
+        // Search field with auto-suggest - will match filter dropdown height
         searchField = new JTextField(30);
-        searchField.setFont(new Font("Arial", Font.PLAIN, 14));
+        searchField.setFont(new Font("Arial", Font.PLAIN, 16)); // Larger font for readability
+        // Add right padding to make room for both icons (X and magnifying glass)
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            searchField.getBorder(),
+            BorderFactory.createEmptyBorder(0, 5, 0, 65) // Right padding for both X button and search icon
+        ));
+
+        // Create clear button (X icon) that appears inside search field
+        clearSearchButton = new JButton() {
+            private boolean isHovered = false;
+
+            {
+                setFocusPainted(false);
+                setBorderPainted(false);
+                setContentAreaFilled(false);
+                setOpaque(false);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setToolTipText("Clear search");
+                setVisible(false); // Hidden by default
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                // Set color based on hover state
+                g2d.setColor(isHovered ? Color.RED : Color.GRAY);
+
+                int size = Math.min(getWidth(), getHeight());
+                int padding = size / 4;
+                int x1 = padding;
+                int y1 = padding;
+                int x2 = size - padding;
+                int y2 = size - padding;
+
+                // Draw X (two diagonal lines)
+                g2d.drawLine(x1, y1, x2, y2); // Top-left to bottom-right
+                g2d.drawLine(x2, y1, x1, y2); // Top-right to bottom-left
+
+                g2d.dispose();
+            }
+        };
+
+        // Create search icon button (magnifying glass) on left side
+        searchIconButton = new JButton() {
+            private boolean isHovered = false;
+
+            {
+                setFocusPainted(false);
+                setBorderPainted(false);
+                setContentAreaFilled(false);
+                setOpaque(false);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setToolTipText("Search");
+                setVisible(true); // Always visible
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Set color based on hover state
+                Color iconColor = isHovered ? new Color(100, 149, 237) : new Color(100, 100, 100);
+                g2d.setColor(iconColor);
+
+                int size = Math.min(getWidth(), getHeight());
+                int padding = 4;
+
+                // Circle size (lens)
+                int circleSize = (int) (size * 0.55);
+                int centerX = size / 2 - 2;
+                int centerY = size / 2 - 2;
+
+                // Draw magnifying glass circle
+                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2d.drawOval(centerX - circleSize / 2, centerY - circleSize / 2, circleSize, circleSize);
+
+                // Draw magnifying glass handle
+                g2d.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int handleStartX = centerX + (int) (circleSize / 2 * 0.6);
+                int handleStartY = centerY + (int) (circleSize / 2 * 0.6);
+                int handleLength = (int) (circleSize * 0.6);
+                int handleEndX = handleStartX + (int) (handleLength * 0.707);
+                int handleEndY = handleStartY + (int) (handleLength * 0.707);
+                g2d.drawLine(handleStartX, handleStartY, handleEndX, handleEndY);
+
+                g2d.dispose();
+            }
+        };
+
+        // Create panel to hold search field with icon buttons overlay
+        searchFieldPanel = new JPanel(null); // Use null layout for absolute positioning
+        searchFieldPanel.setOpaque(false);
 
         // Create suggestion scroll panel (vertical list)
         suggestionContainer = new JPanel();
@@ -122,18 +259,176 @@ public class PosInterfacePolished extends JFrame {
         suggestionScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         suggestionScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         suggestionScrollPane.setPreferredSize(new Dimension(300, 200));
-        suggestionScrollPane.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Suggestions"),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        ));
+        suggestionScrollPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        // Create header panel with title and close button
+        JPanel suggestionHeader = new JPanel(new BorderLayout(5, 0));
+        suggestionHeader.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        JLabel suggestionTitle = new JLabel("Suggestions");
+        suggestionTitle.setFont(new Font("Arial", Font.BOLD, 14));
+
+        // Create custom close button with painted X icon
+        JButton closeSuggestionsBtn = new JButton() {
+            private boolean isHovered = false;
+
+            {
+                setPreferredSize(new Dimension(30, 30));
+                setMinimumSize(new Dimension(30, 30));
+                setMaximumSize(new Dimension(30, 30));
+                setFocusPainted(false);
+                setBorderPainted(false);
+                setContentAreaFilled(false);
+                setToolTipText("Close suggestions");
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                // Set color based on hover state
+                g2d.setColor(isHovered ? new Color(200, 0, 0) : Color.RED);
+
+                int padding = 8;
+                int x1 = padding;
+                int y1 = padding;
+                int x2 = getWidth() - padding;
+                int y2 = getHeight() - padding;
+
+                // Draw X (two diagonal lines)
+                g2d.drawLine(x1, y1, x2, y2); // Top-left to bottom-right
+                g2d.drawLine(x2, y1, x1, y2); // Top-right to bottom-left
+
+                g2d.dispose();
+            }
+        };
+
+        closeSuggestionsBtn.addActionListener(e -> {
+            suggestionScrollPanel.setVisible(false);
+            searchField.setText(""); // Clear search field
+            currentPage = 0;
+            updateQuickKeysPage(); // Recalculate grid
+        });
+
+        suggestionHeader.add(suggestionTitle, BorderLayout.WEST);
+        suggestionHeader.add(closeSuggestionsBtn, BorderLayout.EAST);
 
         suggestionScrollPanel = new JPanel(new BorderLayout());
+        suggestionScrollPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        suggestionScrollPanel.add(suggestionHeader, BorderLayout.NORTH);
         suggestionScrollPanel.add(suggestionScrollPane, BorderLayout.CENTER);
         suggestionScrollPanel.setVisible(false); // Hidden by default
 
-        // Price filter combo box
-        String[] filterOptions = {"No Sorting", "Price: Low to High", "Price: High to Low"};
+        // Filter combo box - let it render at natural height
+        String[] filterOptions = {
+            "No Filter",
+            "─────────────────",  // Visual separator
+            "Name: A to Z",
+            "Name: Z to A",
+            "─────────────────",  // Visual separator
+            "Price: Low to High",
+            "Price: High to Low"
+        };
         priceFilterCombo = new JComboBox<>(filterOptions);
+        priceFilterCombo.setFont(new Font("Arial", Font.PLAIN, 16)); // Larger font for readability
+
+        // Customize renderer to draw full-width separator and show checkmark for selected item
+        priceFilterCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean isSelected, boolean cellHasFocus) {
+
+                // Check if this is the separator
+                if (value != null && value.toString().startsWith("───")) {
+                    // Create custom separator panel with full-width line
+                    JPanel separator = new JPanel() {
+                        @Override
+                        protected void paintComponent(Graphics g) {
+                            super.paintComponent(g);
+                            Graphics2D g2d = (Graphics2D) g.create();
+                            g2d.setColor(Color.GRAY);
+                            g2d.setStroke(new BasicStroke(1));
+                            int y = getHeight() / 2;
+                            g2d.drawLine(0, y, getWidth(), y);
+                            g2d.dispose();
+                        }
+                    };
+                    separator.setPreferredSize(new Dimension(0, 10));
+                    separator.setBackground(new Color(240, 240, 240));
+                    return separator;
+                }
+
+                // Regular item
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value,
+                    index, isSelected, cellHasFocus);
+
+                // Add checkmark to left of currently selected item (except "No Filter")
+                Object selectedItem = priceFilterCombo.getSelectedItem();
+                if (value != null && value.equals(selectedItem) && !value.equals("No Filter")) {
+                    label.setText("✓  " + value.toString());
+                    label.setFont(label.getFont().deriveFont(Font.BOLD));
+                }
+
+                return label;
+            }
+        });
+
+        // Make separators non-selectable in the popup list
+        priceFilterCombo.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+                JComboBox<?> combo = (JComboBox<?>) e.getSource();
+                Object popup = combo.getUI().getAccessibleChild(combo, 0);
+                if (popup instanceof javax.swing.plaf.basic.ComboPopup) {
+                    JList<?> list = ((javax.swing.plaf.basic.ComboPopup) popup).getList();
+                    list.setSelectionModel(new javax.swing.DefaultListSelectionModel() {
+                        @Override
+                        public void setSelectionInterval(int index0, int index1) {
+                            // Check if trying to select a separator
+                            Object item = combo.getItemAt(index0);
+                            if (item != null && item.toString().startsWith("───")) {
+                                // Don't allow selection, do nothing
+                                return;
+                            }
+                            super.setSelectionInterval(index0, index1);
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {}
+
+            @Override
+            public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {}
+        });
+
+        // Fallback: Prevent separator from being selected if somehow it gets through
+        priceFilterCombo.addActionListener(e -> {
+            String selected = (String) priceFilterCombo.getSelectedItem();
+            if (selected != null && selected.startsWith("───")) {
+                // If separator is selected, revert to previous selection
+                priceFilterCombo.setSelectedItem(currentSortOrder != null ? currentSortOrder : "No Filter");
+            }
+        });
 
         // Pagination buttons
         prevPageButton = new JButton("◀ Prev");
@@ -225,19 +520,76 @@ public class PosInterfacePolished extends JFrame {
         try {
             allProducts = priceBookService.getAllItems();
             filteredProducts = new ArrayList<>(allProducts);
+            applyDefaultSort(); // Apply priority product sort on initial load
             updateQuickKeysPage();
         } catch (SQLException e) {
             showError("Failed to load products: " + e.getMessage());
         }
     }
 
+    /**
+     * Apply default sorting: Featured products first, then by quick key position
+     */
+    private void applyDefaultSort() {
+        filteredProducts.sort((a, b) -> {
+            // First, sort by isFeatured (featured products first)
+            if (a.isFeatured() != b.isFeatured()) {
+                return a.isFeatured() ? -1 : 1; // Featured products come first
+            }
+
+            // Then, sort by quickKeyPosition (lower position = higher priority)
+            Integer posA = a.quickKeyPosition();
+            Integer posB = b.quickKeyPosition();
+
+            // Handle null positions (put them at the end)
+            if (posA == null && posB == null) return 0;
+            if (posA == null) return 1;
+            if (posB == null) return -1;
+
+            return Integer.compare(posA, posB);
+        });
+    }
+
+    /**
+     * Dynamically calculate grid dimensions based on available space
+     */
+    private int[] calculateGridDimensions() {
+        // Get the parent container's dimensions (gridWrapper)
+        Container parent = quickKeysGridPanel.getParent();
+        if (parent == null || parent.getWidth() <= 0 || parent.getHeight() <= 0) {
+            // Return default values if parent not yet laid out
+            return new int[]{4, 3}; // rows, cols
+        }
+
+        int availableWidth = parent.getWidth() - 20; // Account for borders/padding
+        int availableHeight = parent.getHeight() - 60; // Account for pagination panel
+
+        // Reduce height if suggestions panel is visible
+        if (suggestionScrollPanel.isVisible()) {
+            availableHeight = Math.max(availableHeight, 200); // Ensure minimum height
+        }
+
+        // Calculate how many columns and rows can fit
+        int maxCols = Math.max(2, (availableWidth + GRID_SPACING) / (BUTTON_WIDTH + GRID_SPACING));
+        int maxRows = Math.max(2, (availableHeight + GRID_SPACING) / (BUTTON_HEIGHT + GRID_SPACING));
+
+        // Limit to reasonable bounds
+        maxCols = Math.min(maxCols, 6); // Max 6 columns
+        maxRows = Math.min(maxRows, 6); // Max 6 rows
+
+        return new int[]{maxRows, maxCols};
+    }
+
     private void updateQuickKeysPage() {
         quickKeysGridPanel.removeAll();
 
-        // Adjust grid layout based on current mode
-        int rows = suggestionScrollPanel.isVisible() ? 2 : 4; // 2 rows when suggestions shown, 4 rows otherwise
-        int cols = 3;
-        quickKeysGridPanel.setLayout(new GridLayout(rows, cols, 10, 10));
+        // Calculate grid dimensions dynamically
+        int[] gridDims = calculateGridDimensions();
+        int rows = gridDims[0];
+        int cols = gridDims[1];
+        currentItemsPerPage = rows * cols;
+
+        quickKeysGridPanel.setLayout(new GridLayout(rows, cols, GRID_SPACING, GRID_SPACING));
 
         int startIdx = currentPage * currentItemsPerPage;
         int endIdx = Math.min(startIdx + currentItemsPerPage, filteredProducts.size());
@@ -282,21 +634,92 @@ public class PosInterfacePolished extends JFrame {
         JPanel upcPanel = createUpcInputPanel();
         add(upcPanel, BorderLayout.NORTH);
 
-        // LEFT: Current Sale (narrower)
-        add(createCurrentSalePanel(), BorderLayout.WEST);
-
         // CENTER/RIGHT: Split for Quick Keys (top) and Actions (bottom)
         JPanel rightPanel = new JPanel(new BorderLayout(10, 10));
 
         // Upper: Quick Keys with Search and Pagination
         JPanel quickKeysContainer = new JPanel(new BorderLayout(5, 5));
 
-        // Search and filter panel
-        JPanel searchFilterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        searchFilterPanel.add(new JLabel("Search:"));
-        searchFilterPanel.add(searchField);
-        searchFilterPanel.add(new JLabel("Sort:"));
-        searchFilterPanel.add(priceFilterCombo);
+        // Search and filter panel with dynamic sizing
+        JPanel searchFilterPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.CENTER; // Center components vertically
+        gbc.gridy = 0;
+
+        // Match search field height to combo box natural height
+        int comboHeight = priceFilterCombo.getPreferredSize().height;
+        searchField.setPreferredSize(new Dimension(300, comboHeight));
+        searchField.setMinimumSize(new Dimension(200, comboHeight));
+        searchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, comboHeight));
+
+        // Position clear button inside search field (right side)
+        int buttonSize = comboHeight - 4;
+        clearSearchButton.setPreferredSize(new Dimension(buttonSize, buttonSize));
+        clearSearchButton.setSize(buttonSize, buttonSize);
+
+        // Setup search field panel with overlay button
+        searchFieldPanel.setPreferredSize(new Dimension(300, comboHeight));
+        searchFieldPanel.setMinimumSize(new Dimension(200, comboHeight));
+        searchFieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, comboHeight));
+
+        // Add component listener to position elements when panel is resized
+        searchFieldPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int panelWidth = searchFieldPanel.getWidth();
+                int panelHeight = searchFieldPanel.getHeight();
+
+                // Search field takes full width
+                searchField.setBounds(0, 0, panelWidth, panelHeight);
+
+                int btnSize = panelHeight - 8;
+                int btnY = (panelHeight - btnSize) / 2;
+
+                // Both icons on the right side:
+                // Magnifying glass icon positioned on the far right
+                int searchIconX = panelWidth - btnSize - 6;
+                searchIconButton.setBounds(searchIconX, btnY, btnSize, btnSize);
+
+                // Clear X button positioned to the left of magnifying glass
+                int clearBtnX = searchIconX - btnSize - 4;
+                clearSearchButton.setBounds(clearBtnX, btnY, btnSize, btnSize);
+            }
+        });
+
+        searchFieldPanel.add(searchField);
+        searchFieldPanel.add(searchIconButton);
+        searchFieldPanel.add(clearSearchButton);
+
+        // Ensure buttons are on top (higher z-order)
+        searchFieldPanel.setComponentZOrder(searchIconButton, 0);
+        searchFieldPanel.setComponentZOrder(clearSearchButton, 0);
+
+        // Search label - touch-friendly font
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        JLabel searchLabel = new JLabel("Search:");
+        searchLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        searchFilterPanel.add(searchLabel, gbc);
+
+        // Search field panel (equal width distribution)
+        gbc.gridx = 1;
+        gbc.weightx = 0.5; // Take 50% of available space
+        searchFilterPanel.add(searchFieldPanel, gbc);
+
+        // Filter label - touch-friendly font
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        JLabel filterLabel = new JLabel("Filter:");
+        filterLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        searchFilterPanel.add(filterLabel, gbc);
+
+        // Filter dropdown (equal width distribution) - render at natural height
+        gbc.gridx = 3;
+        gbc.weightx = 0.5; // Take 50% of available space
+        searchFilterPanel.add(priceFilterCombo, gbc);
+
         quickKeysContainer.add(searchFilterPanel, BorderLayout.NORTH);
 
         // Main content area with grid and suggestions
@@ -305,6 +728,23 @@ public class PosInterfacePolished extends JFrame {
         // Grid panel wrapper
         JPanel gridWrapper = new JPanel(new BorderLayout());
         gridWrapper.add(quickKeysGridPanel, BorderLayout.CENTER);
+
+        // Add component listener for responsive grid sizing
+        gridWrapper.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                // Recalculate grid when component is resized
+                int oldItemsPerPage = currentItemsPerPage;
+                int[] gridDims = calculateGridDimensions();
+                int newItemsPerPage = gridDims[0] * gridDims[1];
+
+                if (newItemsPerPage != oldItemsPerPage) {
+                    // Reset to page 0 if items per page changed significantly
+                    currentPage = 0;
+                    updateQuickKeysPage();
+                }
+            }
+        });
 
         // Pagination panel
         JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
@@ -323,7 +763,103 @@ public class PosInterfacePolished extends JFrame {
         // Lower: Actions Panel
         rightPanel.add(createActionsPanel(), BorderLayout.SOUTH);
 
-        add(rightPanel, BorderLayout.CENTER);
+        // Create resizable split pane with Current Sale on left and Quick Keys/Actions on right
+        JPanel currentSalePanel = createCurrentSalePanel();
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, currentSalePanel, rightPanel);
+        mainSplitPane.setDividerLocation(CURRENT_SALE_DEFAULT_WIDTH);
+        mainSplitPane.setDividerSize(8);
+        mainSplitPane.setContinuousLayout(true);
+        mainSplitPane.setOneTouchExpandable(false);
+
+        // Replace default divider with custom visual divider
+        mainSplitPane.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
+            @Override
+            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
+                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
+                    private boolean isHovered = false;
+
+                    {
+                        addMouseListener(new java.awt.event.MouseAdapter() {
+                            @Override
+                            public void mouseEntered(java.awt.event.MouseEvent e) {
+                                isHovered = true;
+                                repaint();
+                            }
+
+                            @Override
+                            public void mouseExited(java.awt.event.MouseEvent e) {
+                                isHovered = false;
+                                repaint();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void paint(Graphics g) {
+                        Graphics2D g2d = (Graphics2D) g.create();
+                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                        int width = getWidth();
+                        int height = getHeight();
+
+                        // Background color changes on hover
+                        Color bgColor = isHovered ? new Color(100, 149, 237) : new Color(180, 180, 180);
+                        g2d.setColor(bgColor);
+                        g2d.fillRect(0, 0, width, height);
+
+                        // Draw vertical grip marks (dots)
+                        g2d.setColor(isHovered ? Color.WHITE : new Color(120, 120, 120));
+                        int centerX = width / 2;
+                        int gripSpacing = 4;
+                        int gripDotSize = 3;
+                        int startY = height / 2 - (gripSpacing * 4); // 4 dots above center
+
+                        // Draw 9 grip dots vertically
+                        for (int i = 0; i < 9; i++) {
+                            int y = startY + (i * gripSpacing);
+                            if (y >= 10 && y <= height - 10) {
+                                g2d.fillOval(centerX - gripDotSize / 2, y, gripDotSize, gripDotSize);
+                            }
+                        }
+
+                        // Add subtle double arrows on hover to indicate draggability
+                        if (isHovered) {
+                            g2d.setColor(Color.WHITE);
+                            int arrowY = height / 2;
+                            // Left arrow
+                            int[] xPointsLeft = {centerX - 3, centerX - 1, centerX - 3};
+                            int[] yPointsLeft = {arrowY, arrowY - 2, arrowY - 4};
+                            g2d.fillPolygon(xPointsLeft, yPointsLeft, 3);
+                            int[] xPointsLeft2 = {centerX - 3, centerX - 1, centerX - 3};
+                            int[] yPointsLeft2 = {arrowY, arrowY + 2, arrowY + 4};
+                            g2d.fillPolygon(xPointsLeft2, yPointsLeft2, 3);
+
+                            // Right arrow
+                            int[] xPointsRight = {centerX + 3, centerX + 1, centerX + 3};
+                            int[] yPointsRight = {arrowY, arrowY - 2, arrowY - 4};
+                            g2d.fillPolygon(xPointsRight, yPointsRight, 3);
+                            int[] xPointsRight2 = {centerX + 3, centerX + 1, centerX + 3};
+                            int[] yPointsRight2 = {arrowY, arrowY + 2, arrowY + 4};
+                            g2d.fillPolygon(xPointsRight2, yPointsRight2, 3);
+                        }
+
+                        g2d.dispose();
+                    }
+                };
+            }
+        });
+
+        // Add property change listener to enforce min/max width constraints
+        mainSplitPane.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, evt -> {
+            int location = mainSplitPane.getDividerLocation();
+            if (location < CURRENT_SALE_MIN_WIDTH) {
+                mainSplitPane.setDividerLocation(CURRENT_SALE_MIN_WIDTH);
+            } else if (location > CURRENT_SALE_MAX_WIDTH) {
+                mainSplitPane.setDividerLocation(CURRENT_SALE_MAX_WIDTH);
+            }
+        });
+
+        add(mainSplitPane, BorderLayout.CENTER);
     }
 
     private JPanel createUpcInputPanel() {
@@ -342,7 +878,7 @@ public class PosInterfacePolished extends JFrame {
     private JPanel createCurrentSalePanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("Current Sale"));
-        panel.setPreferredSize(new Dimension(620, 0));
+        panel.setMinimumSize(new Dimension(CURRENT_SALE_MIN_WIDTH, 0));
 
         // Table with scroll (vertical only, no horizontal)
         JScrollPane scrollPane = new JScrollPane(saleTable);
@@ -423,6 +959,41 @@ public class PosInterfacePolished extends JFrame {
             }
         });
 
+        // Show/hide clear button based on search field content
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                updateClearButtonVisibility();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                updateClearButtonVisibility();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                updateClearButtonVisibility();
+            }
+
+            private void updateClearButtonVisibility() {
+                clearSearchButton.setVisible(!searchField.getText().isEmpty());
+            }
+        });
+
+        // Search icon button action - trigger search (same as Enter key)
+        searchIconButton.addActionListener(e -> handleSearchSubmit());
+
+        // Clear button action - clear search and revert to default view
+        clearSearchButton.addActionListener(e -> {
+            searchField.setText("");
+            suggestionScrollPanel.setVisible(false);
+            filteredProducts = new ArrayList<>(allProducts);
+            applyDefaultSort(); // Revert to priority products (featured + position)
+            currentPage = 0;
+            updateQuickKeysPage();
+        });
+
         // Close suggestions when pressing Escape
         searchField.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
@@ -430,9 +1001,8 @@ public class PosInterfacePolished extends JFrame {
                 if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
                     if (suggestionScrollPanel.isVisible()) {
                         suggestionScrollPanel.setVisible(false);
-                        currentItemsPerPage = ITEMS_PER_PAGE_FULL;
                         currentPage = 0;
-                        updateQuickKeysPage();
+                        updateQuickKeysPage(); // Will recalculate grid dynamically
                     }
                 }
             }
@@ -520,9 +1090,8 @@ public class PosInterfacePolished extends JFrame {
         if (searchText.isEmpty()) {
             if (suggestionScrollPanel.isVisible()) {
                 suggestionScrollPanel.setVisible(false);
-                currentItemsPerPage = ITEMS_PER_PAGE_FULL;
                 currentPage = 0; // Reset to first page
-                updateQuickKeysPage();
+                updateQuickKeysPage(); // Will recalculate grid dynamically
             }
             return;
         }
@@ -537,9 +1106,8 @@ public class PosInterfacePolished extends JFrame {
         if (suggestions.isEmpty() || suggestions.size() < SUGGESTION_THRESHOLD) {
             if (suggestionScrollPanel.isVisible()) {
                 suggestionScrollPanel.setVisible(false);
-                currentItemsPerPage = ITEMS_PER_PAGE_FULL;
                 currentPage = 0; // Reset to first page
-                updateQuickKeysPage();
+                updateQuickKeysPage(); // Will recalculate grid dynamically
             }
             return;
         }
@@ -552,12 +1120,11 @@ public class PosInterfacePolished extends JFrame {
             suggestionContainer.add(card);
         }
 
-        // Show suggestion scroll panel and switch to compact grid
+        // Show suggestion scroll panel - grid will recalculate automatically
         if (!suggestionScrollPanel.isVisible()) {
             suggestionScrollPanel.setVisible(true);
-            currentItemsPerPage = ITEMS_PER_PAGE_COMPACT;
             currentPage = 0; // Reset to first page
-            updateQuickKeysPage();
+            updateQuickKeysPage(); // Will recalculate grid dynamically
         }
 
         suggestionContainer.revalidate();
@@ -636,10 +1203,9 @@ public class PosInterfacePolished extends JFrame {
     private void handleSearchSubmit() {
         String searchText = searchField.getText().trim().toLowerCase();
 
-        // Hide suggestions and return to full grid
+        // Hide suggestions - grid will recalculate automatically
         if (suggestionScrollPanel.isVisible()) {
             suggestionScrollPanel.setVisible(false);
-            currentItemsPerPage = ITEMS_PER_PAGE_FULL;
         }
 
         if (searchText.isEmpty()) {
@@ -669,15 +1235,26 @@ public class PosInterfacePolished extends JFrame {
     private void applySortOrder() {
         if (currentSortOrder == null) return;
 
+        // Ignore separator if somehow selected
+        if (currentSortOrder.startsWith("───")) return;
+
         switch (currentSortOrder) {
+            case "Name: A to Z":
+                filteredProducts.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
+                break;
+            case "Name: Z to A":
+                filteredProducts.sort((a, b) -> b.name().compareToIgnoreCase(a.name()));
+                break;
             case "Price: Low to High":
                 filteredProducts.sort((a, b) -> Double.compare(a.price(), b.price()));
                 break;
             case "Price: High to Low":
                 filteredProducts.sort((a, b) -> Double.compare(b.price(), a.price()));
                 break;
+            case "No Filter":
             default:
-                // No sorting
+                // Revert to default: featured products first, then by quick key position
+                applyDefaultSort();
                 break;
         }
     }
