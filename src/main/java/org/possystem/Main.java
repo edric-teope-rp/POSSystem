@@ -1,7 +1,7 @@
 package org.possystem;
 
 import org.possystem.database.DatabaseManager;
-import org.possystem.ui.PosInterfacePolished;
+import org.possystem.ui.PosInterface;
 
 import javax.swing.*;
 
@@ -15,7 +15,7 @@ public class Main {
 
         // Launch POS Interface on Swing thread
         SwingUtilities.invokeLater(() -> {
-            PosInterfacePolished posInterface = new PosInterfacePolished();
+            PosInterface posInterface = new PosInterface();
             posInterface.setVisible(true);
         });
     }
