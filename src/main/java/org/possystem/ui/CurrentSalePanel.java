@@ -19,6 +19,7 @@ public class CurrentSalePanel extends JPanel {
 
     private final TransactionService transactionService;
     private final Runnable onSelectionChanged;
+    private Runnable onQuantityFieldClicked; // Callback when quantity field is clicked
 
     private boolean editingEnabled = true; // Track if editing is allowed
     private JTable saleTable;
@@ -28,8 +29,17 @@ public class CurrentSalePanel extends JPanel {
     private JLabel totalLabel;
 
     public static final int MIN_WIDTH = 400;
-    public static final int MAX_WIDTH = 800;
-    public static final int DEFAULT_WIDTH = 620;
+
+    // Calculate width as 42% of screen width
+    private static int calculateWidth() {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int calculatedWidth = (int) (screenSize.width * 0.42);
+        // Ensure minimum of 400px
+        return Math.max(calculatedWidth, MIN_WIDTH);
+    }
+
+    public static final int DEFAULT_WIDTH = calculateWidth();
+    public static final int MAX_WIDTH = DEFAULT_WIDTH; // Same as default for fixed panel
 
     public CurrentSalePanel(TransactionService transactionService, Runnable onSelectionChanged) {
         this.transactionService = transactionService;
@@ -37,7 +47,10 @@ public class CurrentSalePanel extends JPanel {
 
         setLayout(new BorderLayout(5, 5));
         setBorder(BorderFactory.createTitledBorder("Current Sale"));
-        setMinimumSize(new Dimension(MIN_WIDTH, 0));
+        // Fixed width panel - no resizing, but responsive to screen size (42% of screen width)
+        setPreferredSize(new Dimension(DEFAULT_WIDTH, 0));
+        setMinimumSize(new Dimension(DEFAULT_WIDTH, 0));
+        setMaximumSize(new Dimension(DEFAULT_WIDTH, Integer.MAX_VALUE));
 
         initializeComponents();
         layoutComponents();
@@ -48,6 +61,8 @@ public class CurrentSalePanel extends JPanel {
         saleTableModel = new SaleTableModel();
         saleTable = new JTable(saleTableModel);
         saleTable.setRowHeight(45);
+        saleTable.setFont(new Font("Arial", Font.PLAIN, 16));  // Increase table font size
+        saleTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 16));  // Increase header font size
         saleTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         saleTable.getTableHeader().setReorderingAllowed(false);
 
@@ -62,15 +77,15 @@ public class CurrentSalePanel extends JPanel {
             }
         });
 
-        // Set column widths
-        saleTable.getColumnModel().getColumn(0).setPreferredWidth(40);  // Checkbox
-        saleTable.getColumnModel().getColumn(1).setPreferredWidth(250); // Name
-        saleTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Qty
-        saleTable.getColumnModel().getColumn(2).setMinWidth(150);
-        saleTable.getColumnModel().getColumn(3).setPreferredWidth(80);  // Price
-        saleTable.getColumnModel().getColumn(4).setPreferredWidth(90);  // Line Total
-        saleTable.getColumnModel().getColumn(5).setPreferredWidth(50);  // Delete
-        saleTable.getColumnModel().getColumn(5).setMaxWidth(50);
+        // Set column widths (proportional to 42% screen width)
+        saleTable.getColumnModel().getColumn(0).setPreferredWidth(48);  // Checkbox
+        saleTable.getColumnModel().getColumn(1).setPreferredWidth(305); // Name
+        saleTable.getColumnModel().getColumn(2).setPreferredWidth(173); // Qty
+        saleTable.getColumnModel().getColumn(2).setMinWidth(173);
+        saleTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Price
+        saleTable.getColumnModel().getColumn(4).setPreferredWidth(110); // Line Total
+        saleTable.getColumnModel().getColumn(5).setPreferredWidth(58);  // Delete
+        saleTable.getColumnModel().getColumn(5).setMaxWidth(58);
 
         // Set custom header renderer for select all checkbox
         saleTable.getColumnModel().getColumn(0).setHeaderRenderer(new SelectAllHeaderRenderer());
@@ -122,9 +137,11 @@ public class CurrentSalePanel extends JPanel {
 
         // Totals Display
         subtotalLabel = new JLabel("Subtotal: $0.00");
+        subtotalLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         taxLabel = new JLabel("Tax (7%): $0.00");
+        taxLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         totalLabel = new JLabel("Total: $0.00");
-        totalLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 22));
     }
 
     private void layoutComponents() {
@@ -181,6 +198,10 @@ public class CurrentSalePanel extends JPanel {
         return saleTable.getSelectedRow() >= 0;
     }
 
+    public void setOnQuantityFieldClicked(Runnable callback) {
+        this.onQuantityFieldClicked = callback;
+    }
+
     public void setEditingEnabled(boolean enabled) {
         this.editingEnabled = enabled;
 
@@ -211,15 +232,14 @@ public class CurrentSalePanel extends JPanel {
     }
 
     private void handleSingleClickDelete(TransactionItem item) {
-        int confirm = JOptionPane.showConfirmDialog(
-            SwingUtilities.getWindowAncestor(this),
-            String.format("Delete \"%s\" from the cart?", item.name()),
+        // Create custom confirmation dialog
+        boolean confirmed = showConfirmDialog(
             "Confirm Delete",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE
+            "Delete Item?",
+            String.format("This action will remove \"%s\" from the current transaction.", item.name())
         );
 
-        if (confirm == JOptionPane.YES_OPTION) {
+        if (confirmed) {
             try {
                 List<Integer> ids = new ArrayList<>();
                 ids.add(item.id());
@@ -299,6 +319,137 @@ public class CurrentSalePanel extends JPanel {
         errorDialog.add(buttonPanel, BorderLayout.SOUTH);
 
         errorDialog.setVisible(true);
+    }
+
+    private boolean showConfirmDialog(String title, String message, String details) {
+        // Get screen dimensions for responsive sizing
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int screenHeight = screenSize.height;
+        float scaleFactor = screenHeight / 1080.0f;
+
+        int headerFontSize = Math.round(24 * scaleFactor);
+        int bodyFontSize = Math.round(18 * scaleFactor);
+        int buttonFontSize = Math.round(18 * scaleFactor);
+        int buttonHeight = Math.round(50 * scaleFactor);
+
+        JDialog confirmDialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
+        confirmDialog.setSize(400, 280);
+        confirmDialog.setMinimumSize(new Dimension(350, 280));
+        confirmDialog.setLocationRelativeTo(null);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Header with warning color
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(255, 193, 7));  // Amber/warning color
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        JLabel headerLabel = new JLabel(message);
+        headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
+        headerLabel.setForeground(Color.WHITE);
+        headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Details panel
+        JPanel detailsPanel = new JPanel(new BorderLayout());
+        detailsPanel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
+
+        JLabel detailsLabel = new JLabel("<html><center>" + details + "</center></html>");
+        detailsLabel.setFont(new Font("Arial", Font.PLAIN, bodyFontSize));
+        detailsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        detailsPanel.add(detailsLabel, BorderLayout.CENTER);
+
+        // Buttons panel
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+
+        final boolean[] result = {false};
+
+        JButton noButton = new JButton("No");
+        noButton.setFont(new Font("Arial", Font.BOLD, buttonFontSize));
+        noButton.setPreferredSize(new Dimension(0, buttonHeight));
+        noButton.setBackground(new Color(220, 53, 69));  // Red
+        noButton.setForeground(Color.WHITE);
+        noButton.addActionListener(e -> {
+            result[0] = false;
+            confirmDialog.dispose();
+        });
+        applyRoundedStyle(noButton);
+
+        JButton yesButton = new JButton("Yes");
+        yesButton.setFont(new Font("Arial", Font.BOLD, buttonFontSize));
+        yesButton.setPreferredSize(new Dimension(0, buttonHeight));
+        yesButton.setBackground(new Color(40, 167, 69));  // Green
+        yesButton.setForeground(Color.WHITE);
+        yesButton.addActionListener(e -> {
+            result[0] = true;
+            confirmDialog.dispose();
+        });
+        applyRoundedStyle(yesButton);
+
+        buttonPanel.add(noButton);
+        buttonPanel.add(yesButton);
+
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+        mainPanel.add(detailsPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        confirmDialog.add(mainPanel);
+        confirmDialog.setVisible(true);
+
+        return result[0];
+    }
+
+    private void applyRoundedStyle(JButton button) {
+        button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        button.setContentAreaFilled(false);
+
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                JButton btn = (JButton) c;
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                int arcSize = 12;
+
+                Color buttonColor = btn.getBackground();
+                Color displayColor;
+                Color textColor;
+
+                if (btn.isEnabled()) {
+                    displayColor = buttonColor;
+                    textColor = btn.getForeground();
+                } else {
+                    displayColor = new Color(
+                        (int)(buttonColor.getRed() * 0.5),
+                        (int)(buttonColor.getGreen() * 0.5),
+                        (int)(buttonColor.getBlue() * 0.5)
+                    );
+                    textColor = new Color(180, 180, 180);
+                }
+
+                g2d.setColor(displayColor);
+                g2d.fillRoundRect(0, 0, btn.getWidth() - 1, btn.getHeight() - 1, arcSize, arcSize);
+
+                g2d.setColor(displayColor.darker());
+                g2d.setStroke(new BasicStroke(2f));
+                g2d.drawRoundRect(0, 0, btn.getWidth() - 1, btn.getHeight() - 1, arcSize, arcSize);
+
+                String text = btn.getText();
+                FontMetrics fm = g2d.getFontMetrics(btn.getFont());
+                int textWidth = fm.stringWidth(text);
+                int x = (btn.getWidth() - textWidth) / 2;
+                int y = (btn.getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+
+                g2d.setFont(btn.getFont());
+
+                g2d.setColor(textColor);
+                g2d.drawString(text, x, y);
+
+                g2d.dispose();
+            }
+        });
     }
 
     // ==== Custom Header Renderer ====
@@ -445,11 +596,14 @@ public class CurrentSalePanel extends JPanel {
             setLayout(new FlowLayout(FlowLayout.CENTER, 5, 2));
             minusBtn = new JButton("-");
             minusBtn.setPreferredSize(new Dimension(40, 30));
+            minusBtn.setFont(new Font("Arial", Font.BOLD, 16));
             qtyLabel = new JLabel("1");
             qtyLabel.setPreferredSize(new Dimension(40, 30));
             qtyLabel.setHorizontalAlignment(JLabel.CENTER);
+            qtyLabel.setFont(new Font("Arial", Font.PLAIN, 16));
             plusBtn = new JButton("+");
             plusBtn.setPreferredSize(new Dimension(40, 30));
+            plusBtn.setFont(new Font("Arial", Font.BOLD, 16));
 
             add(minusBtn);
             add(qtyLabel);
@@ -529,15 +683,19 @@ public class CurrentSalePanel extends JPanel {
 
             minusBtn = new JButton("-");
             minusBtn.setPreferredSize(new Dimension(40, 30));
+            minusBtn.setFont(new Font("Arial", Font.BOLD, 16));
             minusBtn.addActionListener(e -> adjustQuantity(-1));
 
             qtyField = new JTextField(3);
             qtyField.setHorizontalAlignment(JTextField.CENTER);
             qtyField.setPreferredSize(new Dimension(40, 30));
-            qtyField.addActionListener(e -> updateQuantityFromField());
+            qtyField.setFont(new Font("Arial", Font.PLAIN, 16));
+            qtyField.setEditable(false); // Read-only - click on quantity area opens numeric keypad dialog
+            qtyField.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
             plusBtn = new JButton("+");
             plusBtn.setPreferredSize(new Dimension(40, 30));
+            plusBtn.setFont(new Font("Arial", Font.BOLD, 16));
             plusBtn.addActionListener(e -> adjustQuantity(1));
 
             panel.add(minusBtn);
@@ -551,6 +709,16 @@ public class CurrentSalePanel extends JPanel {
             if (value instanceof TransactionItem item) {
                 currentItem = item;
                 qtyField.setText(String.valueOf(item.quantity()));
+
+                // Open keyboard dialog immediately on first click
+                if (editingEnabled && onQuantityFieldClicked != null) {
+                    SwingUtilities.invokeLater(() -> {
+                        // Stop editing this cell
+                        fireEditingCanceled();
+                        // Trigger the callback to open the dialog
+                        onQuantityFieldClicked.run();
+                    });
+                }
             }
             return panel;
         }

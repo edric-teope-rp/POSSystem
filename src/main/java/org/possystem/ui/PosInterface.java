@@ -21,7 +21,6 @@ public class PosInterface extends JFrame {
     private QuickKeysPanel quickKeysPanel;
     private CurrentSalePanel currentSalePanel;
     private ActionsPanel actionsPanel;
-    private JSplitPane mainSplitPane;
 
     public PosInterface() {
         this.priceBookService = new PriceBookService();
@@ -71,6 +70,9 @@ public class PosInterface extends JFrame {
         actionsPanel.setChangeQtyCallback(this::handleChangeQuantity);
         actionsPanel.setTransactionFinalizedCallback(this::handleTransactionFinalized);
         actionsPanel.setTransactionResumedCallback(this::handleTransactionResumed);
+
+        // Wire up quantity field click callback (opens same dialog as Change Qty button)
+        currentSalePanel.setOnQuantityFieldClicked(this::handleChangeQuantity);
     }
 
     private void layoutComponents() {
@@ -158,100 +160,31 @@ public class PosInterface extends JFrame {
             }
         });
 
+        // Enforce max height constraint for Actions Zone (max 35% of height)
+        verticalSplitPane.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, evt -> {
+            int totalHeight = verticalSplitPane.getHeight();
+            int location = verticalSplitPane.getDividerLocation();
+
+            // Actions zone is below the divider, so (totalHeight - location) = Actions height
+            // To keep Actions at max 35%: totalHeight - location <= 0.35 * totalHeight
+            // Which means: location >= 0.65 * totalHeight
+            int minDividerLocation = (int) (totalHeight * 0.65);
+
+            if (location < minDividerLocation) {
+                verticalSplitPane.setDividerLocation(minDividerLocation);
+            }
+        });
+
         rightPanel.add(verticalSplitPane, BorderLayout.CENTER);
 
-        // Create resizable split pane with Current Sale on left and Quick Keys/Actions on right
-        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, currentSalePanel, rightPanel);
-        mainSplitPane.setDividerLocation(CurrentSalePanel.DEFAULT_WIDTH);
-        mainSplitPane.setDividerSize(8);
-        mainSplitPane.setContinuousLayout(true);
-        mainSplitPane.setOneTouchExpandable(false);
-
-        // Custom vertical divider
-        mainSplitPane.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
-            @Override
-            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
-                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
-                    private boolean isHovered = false;
-
-                    {
-                        addMouseListener(new java.awt.event.MouseAdapter() {
-                            @Override
-                            public void mouseEntered(java.awt.event.MouseEvent e) {
-                                isHovered = true;
-                                repaint();
-                            }
-
-                            @Override
-                            public void mouseExited(java.awt.event.MouseEvent e) {
-                                isHovered = false;
-                                repaint();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void paint(Graphics g) {
-                        Graphics2D g2d = (Graphics2D) g.create();
-                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                        int width = getWidth();
-                        int height = getHeight();
-
-                        Color bgColor = isHovered ? new Color(100, 149, 237) : new Color(180, 180, 180);
-                        g2d.setColor(bgColor);
-                        g2d.fillRect(0, 0, width, height);
-
-                        g2d.setColor(isHovered ? Color.WHITE : new Color(120, 120, 120));
-                        int centerX = width / 2;
-                        int gripSpacing = 4;
-                        int gripDotSize = 3;
-                        int startY = height / 2 - (gripSpacing * 4);
-
-                        for (int i = 0; i < 9; i++) {
-                            int y = startY + (i * gripSpacing);
-                            if (y >= 10 && y <= height - 10) {
-                                g2d.fillOval(centerX - gripDotSize / 2, y, gripDotSize, gripDotSize);
-                            }
-                        }
-
-                        if (isHovered) {
-                            g2d.setColor(Color.WHITE);
-                            int arrowY = height / 2;
-                            int[] xPointsLeft = {centerX - 3, centerX - 1, centerX - 3};
-                            int[] yPointsLeft = {arrowY, arrowY - 2, arrowY - 4};
-                            g2d.fillPolygon(xPointsLeft, yPointsLeft, 3);
-                            int[] xPointsLeft2 = {centerX - 3, centerX - 1, centerX - 3};
-                            int[] yPointsLeft2 = {arrowY, arrowY + 2, arrowY + 4};
-                            g2d.fillPolygon(xPointsLeft2, yPointsLeft2, 3);
-
-                            int[] xPointsRight = {centerX + 3, centerX + 1, centerX + 3};
-                            int[] yPointsRight = {arrowY, arrowY - 2, arrowY - 4};
-                            g2d.fillPolygon(xPointsRight, yPointsRight, 3);
-                            int[] xPointsRight2 = {centerX + 3, centerX + 1, centerX + 3};
-                            int[] yPointsRight2 = {arrowY, arrowY + 2, arrowY + 4};
-                            g2d.fillPolygon(xPointsRight2, yPointsRight2, 3);
-                        }
-
-                        g2d.dispose();
-                    }
-                };
-            }
-        });
-
-        // Enforce min/max width constraints
-        mainSplitPane.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, evt -> {
-            int location = mainSplitPane.getDividerLocation();
-            if (location < CurrentSalePanel.MIN_WIDTH) {
-                mainSplitPane.setDividerLocation(CurrentSalePanel.MIN_WIDTH);
-            } else if (location > CurrentSalePanel.MAX_WIDTH) {
-                mainSplitPane.setDividerLocation(CurrentSalePanel.MAX_WIDTH);
-            }
-        });
+        // Use fixed-width Current Sale panel (no resizing) to avoid jumping issues
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
+        mainPanel.add(currentSalePanel, BorderLayout.WEST);
+        mainPanel.add(rightPanel, BorderLayout.CENTER);
 
         // Add custom header bar
         add(createHeaderPanel(), BorderLayout.NORTH);
-        add(mainSplitPane, BorderLayout.CENTER);
+        add(mainPanel, BorderLayout.CENTER);
     }
 
     private JPanel createHeaderPanel() {
@@ -325,14 +258,7 @@ public class PosInterface extends JFrame {
                 });
 
                 addActionListener(e -> {
-                    int result = JOptionPane.showConfirmDialog(
-                        PosInterface.this,
-                        "Are you sure you want to close the POS System?",
-                        "Confirm Close",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.QUESTION_MESSAGE
-                    );
-                    if (result == JOptionPane.YES_OPTION) {
+                    if (showCloseConfirmDialog()) {
                         System.exit(0);
                     }
                 });
@@ -468,43 +394,55 @@ public class PosInterface extends JFrame {
                 return;
             }
 
-            // Show custom input dialog
-            String input = showInputDialog(
-                "Change Quantity",
-                "Update Item Quantity",
-                selectedItem.name(),
-                "Current Quantity: " + selectedItem.quantity(),
-                String.valueOf(selectedItem.quantity())
-            );
+            // Loop until valid input or user cancels
+            boolean validInput = false;
+            while (!validInput) {
+                // Show custom input dialog
+                String input = showInputDialog(
+                    "Change Quantity",
+                    "Update Item Quantity",
+                    selectedItem.name(),
+                    "Current Quantity: " + selectedItem.quantity(),
+                    String.valueOf(selectedItem.quantity())
+                );
 
-            // User cancelled
-            if (input == null) {
-                actionsPanel.returnFocusToScanner();
-                return;
-            }
-
-            // Validate input
-            try {
-                int newQty = Integer.parseInt(input.trim());
-                if (newQty < 1) {
-                    showErrorDialog("Invalid Quantity", "Quantity Too Low", "Quantity must be at least 1.");
+                // User cancelled
+                if (input == null) {
                     actionsPanel.returnFocusToScanner();
                     return;
                 }
 
-                // Update quantity
-                transactionService.updateQuantity(selectedItem.id(), newQty, selectedItem.unitPrice());
+                // Validate input
+                if (input.trim().isEmpty()) {
+                    showErrorDialog("Invalid Quantity", "No Quantity Entered", "Please enter a quantity using the keypad.");
+                    continue; // Loop back to input dialog
+                }
 
-                // Refresh display
-                refreshSaleDisplay();
+                try {
+                    int newQty = Integer.parseInt(input.trim());
+                    if (newQty < 1) {
+                        showErrorDialog("Invalid Quantity", "Quantity Too Low", "Quantity must be at least 1.");
+                        continue; // Loop back to input dialog
+                    }
 
-                // Return focus to barcode scanner
-                actionsPanel.returnFocusToScanner();
+                    // Valid input - update quantity
+                    transactionService.updateQuantity(selectedItem.id(), newQty, selectedItem.unitPrice());
 
-            } catch (NumberFormatException e) {
-                showErrorDialog("Invalid Quantity", "Invalid Input", "Please enter a whole number.");
-                actionsPanel.returnFocusToScanner();
+                    // Refresh display
+                    refreshSaleDisplay();
+
+                    // Mark as valid to exit loop
+                    validInput = true;
+
+                } catch (NumberFormatException e) {
+                    showErrorDialog("Invalid Quantity", "Invalid Input", "Please enter a whole number.");
+                    continue; // Loop back to input dialog
+                }
             }
+
+            // Return focus to barcode scanner after successful update
+            actionsPanel.returnFocusToScanner();
+
         } catch (SQLException e) {
             showError("Failed to change quantity: " + e.getMessage());
             actionsPanel.returnFocusToScanner();
@@ -675,13 +613,40 @@ public class PosInterface extends JFrame {
         centerPanel.add(Box.createVerticalStrut(5));
 
         // Input text field (read-only, keypad only) - same width as keypad
-        JTextField inputField = new JTextField(defaultValue);
+        JTextField inputField = new JTextField();
         inputField.setFont(new Font("Arial", Font.BOLD, 24));
         inputField.setHorizontalAlignment(JTextField.CENTER);
         inputField.setMaximumSize(new Dimension(380, 50)); // Match keypad width
         inputField.setPreferredSize(new Dimension(380, 50));
         inputField.setAlignmentX(Component.CENTER_ALIGNMENT);
         inputField.setEditable(false);  // Only keypad can input
+
+        // Set placeholder text
+        final String placeholder = defaultValue;
+        inputField.setText("");
+        inputField.setForeground(Color.GRAY);
+
+        // Custom painting for placeholder
+        inputField.putClientProperty("JTextField.placeholderText", placeholder);
+        inputField.setUI(new javax.swing.plaf.basic.BasicTextFieldUI() {
+            @Override
+            protected void paintSafely(Graphics g) {
+                super.paintSafely(g);
+                JTextField tf = (JTextField) getComponent();
+                if (tf.getText().isEmpty()) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setColor(new Color(160, 160, 160));
+                    g2.setFont(tf.getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int x = (tf.getWidth() - fm.stringWidth(placeholder)) / 2;
+                    int y = (tf.getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                    g2.drawString(placeholder, x, y);
+                    g2.dispose();
+                }
+            }
+        });
+
         centerPanel.add(inputField);
 
         centerPanel.add(Box.createVerticalStrut(8)); // Reduced spacing
@@ -827,24 +792,26 @@ public class PosInterface extends JFrame {
 
         keyButton.addActionListener(e -> {
             String currentText = inputField.getText();
+
+            // Set text color to black when user starts typing
+            inputField.setForeground(Color.BLACK);
+
             if (key.equals("Clear")) {
-                inputField.setText("1"); // Default to 1 for quantities
+                inputField.setText("");
+                inputField.repaint();
             } else if (key.equals("←")) {
                 // Backspace - remove last character
-                if (currentText.length() > 1) {
+                if (currentText.length() > 0) {
                     inputField.setText(currentText.substring(0, currentText.length() - 1));
-                } else {
-                    // If only one character left, replace with "1"
-                    inputField.setText("1");
+                    inputField.repaint();
                 }
             } else {
                 // Number button (0-9)
-                // Remove leading zeros (except for just "0")
-                if (currentText.equals("0") || currentText.equals("1") && currentText.length() == 1) {
-                    inputField.setText(key);
-                } else {
-                    inputField.setText(currentText + key);
+                // Prevent leading zeros
+                if (currentText.isEmpty() && key.equals("0")) {
+                    return; // Don't add leading zero
                 }
+                inputField.setText(currentText + key);
             }
         });
 
@@ -912,6 +879,88 @@ public class PosInterface extends JFrame {
         errorDialog.add(buttonPanel, BorderLayout.SOUTH);
 
         errorDialog.setVisible(true);
+    }
+
+    private boolean showCloseConfirmDialog() {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int screenHeight = screenSize.height;
+        float scaleFactor = screenHeight / 1080.0f;
+
+        int headerFontSize = Math.round(24 * scaleFactor);
+        int bodyFontSize = Math.round(18 * scaleFactor);
+        int buttonFontSize = Math.round(18 * scaleFactor);
+
+        int dialogWidth = (int) (screenSize.width * 0.25);
+        int dialogHeight = (int) (screenSize.height * 0.30);
+
+        JDialog confirmDialog = new JDialog(this, "Confirm Close", Dialog.ModalityType.APPLICATION_MODAL);
+        confirmDialog.setSize(dialogWidth, dialogHeight);
+        confirmDialog.setMinimumSize(new Dimension(320, 250));
+        confirmDialog.setLocationRelativeTo(this);
+        confirmDialog.setLayout(new BorderLayout());
+
+        // Header Panel with red warning color (critical action)
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(220, 53, 69));  // Red
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        JLabel headerLabel = new JLabel("Close POS System?");
+        headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
+        headerLabel.setForeground(Color.WHITE);
+        headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        confirmDialog.add(headerPanel, BorderLayout.NORTH);
+
+        // Center Panel with details text
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel detailsLabel = new JLabel("<html><div style='text-align: center;'>Are you sure you want to close the application?<br/>All unsaved work will be lost.</div></html>");
+        detailsLabel.setFont(new Font("Arial", Font.PLAIN, bodyFontSize));
+        detailsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        centerPanel.add(detailsLabel, BorderLayout.CENTER);
+
+        confirmDialog.add(centerPanel, BorderLayout.CENTER);
+
+        // Button Panel
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
+
+        // No button (green, left side - safe choice)
+        JButton noButton = new JButton("No");
+        noButton.setBackground(new Color(40, 167, 69));  // Green
+        noButton.setForeground(Color.WHITE);
+        noButton.setFont(new Font("Arial", Font.BOLD, buttonFontSize));
+        applyRoundedStyle(noButton);
+
+        // Yes button (red, right side - destructive action)
+        JButton yesButton = new JButton("Yes");
+        yesButton.setBackground(new Color(220, 53, 69));  // Red
+        yesButton.setForeground(Color.WHITE);
+        yesButton.setFont(new Font("Arial", Font.BOLD, buttonFontSize));
+        applyRoundedStyle(yesButton);
+
+        buttonPanel.add(noButton);
+        buttonPanel.add(yesButton);
+
+        confirmDialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Track user choice
+        final boolean[] userChoice = {false};
+
+        yesButton.addActionListener(e -> {
+            userChoice[0] = true;
+            confirmDialog.dispose();
+        });
+
+        noButton.addActionListener(e -> {
+            userChoice[0] = false;
+            confirmDialog.dispose();
+        });
+
+        confirmDialog.setVisible(true);
+
+        return userChoice[0];
     }
 
     private void applyRoundedStyle(JButton button) {
