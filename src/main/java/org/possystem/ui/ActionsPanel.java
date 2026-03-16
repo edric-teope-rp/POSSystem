@@ -620,6 +620,8 @@ public class ActionsPanel extends JPanel {
 
     private String showInputAmountDialog(double total) {
         JDialog inputDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Input Amount", Dialog.ModalityType.APPLICATION_MODAL);
+        inputDialog.setUndecorated(true);
+        inputDialog.setResizable(false);
 
         // Calculate responsive sizing
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -643,6 +645,25 @@ public class ActionsPanel extends JPanel {
         headerLabel.setFont(new Font("Arial", Font.BOLD, 20));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.WEST);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    inputDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
@@ -874,6 +895,8 @@ public class ActionsPanel extends JPanel {
     private void showCashPaymentOptionsDialog(double total) {
         // Create custom modal dialog
         JDialog cashDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Cash Payment Options", Dialog.ModalityType.APPLICATION_MODAL);
+        cashDialog.setUndecorated(true);
+        cashDialog.setResizable(false);
 
         // Calculate responsive sizing based on screen
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -896,6 +919,25 @@ public class ActionsPanel extends JPanel {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel, BorderLayout.WEST);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    cashDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
@@ -1036,6 +1078,8 @@ public class ActionsPanel extends JPanel {
         int padding = 52;
         int dialogWidth = Math.min(textWidth + padding, screenSize.width - 100); // ~381px total
 
+        receiptDialog.setUndecorated(true);
+        receiptDialog.setResizable(false);
         receiptDialog.setSize(dialogWidth, dialogHeight);
         receiptDialog.setLocationRelativeTo(null); // Center on screen
 
@@ -1052,6 +1096,25 @@ public class ActionsPanel extends JPanel {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel, BorderLayout.WEST);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    receiptDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
@@ -1229,6 +1292,8 @@ public class ActionsPanel extends JPanel {
         int dialogHeight = (int) (screenSize.height * 0.30);
 
         JDialog confirmDialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
+        confirmDialog.setUndecorated(true);
+        confirmDialog.setResizable(false);
         confirmDialog.setSize(dialogWidth, dialogHeight);
         confirmDialog.setMinimumSize(new Dimension(320, 250));
         confirmDialog.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
@@ -1243,6 +1308,25 @@ public class ActionsPanel extends JPanel {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    confirmDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         confirmDialog.add(headerPanel, BorderLayout.NORTH);
 
@@ -1313,6 +1397,8 @@ public class ActionsPanel extends JPanel {
         int dialogHeight = (int) (screenSize.height * 0.30);
 
         JDialog infoDialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
+        infoDialog.setUndecorated(true);
+        infoDialog.setResizable(false);
         infoDialog.setSize(dialogWidth, dialogHeight);
         infoDialog.setMinimumSize(new Dimension(320, 250));
         infoDialog.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
@@ -1327,6 +1413,25 @@ public class ActionsPanel extends JPanel {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    infoDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         infoDialog.add(headerPanel, BorderLayout.NORTH);
 
@@ -1376,6 +1481,8 @@ public class ActionsPanel extends JPanel {
         int dialogHeight = (int) (screenSize.height * 0.30);
 
         JDialog warningDialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
+        warningDialog.setUndecorated(true);
+        warningDialog.setResizable(false);
         warningDialog.setSize(dialogWidth, dialogHeight);
         warningDialog.setMinimumSize(new Dimension(320, 250));
         warningDialog.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
@@ -1390,6 +1497,25 @@ public class ActionsPanel extends JPanel {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    warningDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         warningDialog.add(headerPanel, BorderLayout.NORTH);
 
@@ -1494,6 +1620,8 @@ public class ActionsPanel extends JPanel {
         int dialogHeight = (int) (screenSize.height * 0.30);
 
         JDialog inputDialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
+        inputDialog.setUndecorated(true);
+        inputDialog.setResizable(false);
         inputDialog.setSize(dialogWidth, dialogHeight);
         inputDialog.setMinimumSize(new Dimension(350, 280));
         inputDialog.setLocationRelativeTo(this);
@@ -1508,6 +1636,25 @@ public class ActionsPanel extends JPanel {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    inputDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         inputDialog.add(headerPanel, BorderLayout.NORTH);
 
@@ -1617,6 +1764,8 @@ public class ActionsPanel extends JPanel {
         int dialogHeight = (int) (screenSize.height * 0.30);
 
         JDialog errorDialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
+        errorDialog.setUndecorated(true);
+        errorDialog.setResizable(false);
         errorDialog.setSize(dialogWidth, dialogHeight);
         errorDialog.setMinimumSize(new Dimension(320, 250));
         errorDialog.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
@@ -1631,6 +1780,25 @@ public class ActionsPanel extends JPanel {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    errorDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         errorDialog.add(headerPanel, BorderLayout.NORTH);
 

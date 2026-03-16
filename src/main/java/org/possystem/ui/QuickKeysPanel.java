@@ -790,6 +790,8 @@ public class QuickKeysPanel extends JPanel {
 
         // Create touch-friendly dialog instead of small popup menu
         JDialog actionDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Select Action", Dialog.ModalityType.APPLICATION_MODAL);
+        actionDialog.setUndecorated(true);
+        actionDialog.setResizable(false);
         actionDialog.setSize(dialogWidth, dialogHeight);
         actionDialog.setMinimumSize(new Dimension(320, 300));
         actionDialog.setLocationRelativeTo(null);  // Center on screen
@@ -806,6 +808,26 @@ public class QuickKeysPanel extends JPanel {
         priceLabel.setForeground(new Color(0, 120, 0));
         infoPanel.add(nameLabel);
         infoPanel.add(priceLabel);
+
+        // Add mouse drag functionality to info panel
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        infoPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        infoPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    actionDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
+
 
         // Touch-friendly buttons with dynamic sizing
         JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 8, 8));
@@ -873,6 +895,8 @@ public class QuickKeysPanel extends JPanel {
 
         // Create touch-friendly details dialog
         JDialog detailsDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Product Details", Dialog.ModalityType.APPLICATION_MODAL);
+        detailsDialog.setUndecorated(true);
+        detailsDialog.setResizable(false);
         detailsDialog.setSize(dialogWidth, dialogHeight);
         detailsDialog.setMinimumSize(new Dimension(350, 400));
         detailsDialog.setLocationRelativeTo(null);
@@ -889,6 +913,26 @@ public class QuickKeysPanel extends JPanel {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    detailsDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
+
 
         // Details panel with labeled fields
         JPanel detailsPanel = new JPanel(new GridLayout(5, 2, 10, 12));
@@ -1107,6 +1151,8 @@ public class QuickKeysPanel extends JPanel {
         int dialogHeight = Math.min(500, screenSize.height - 100);
 
         JDialog keyboardDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Search Products", Dialog.ModalityType.MODELESS);
+        keyboardDialog.setUndecorated(true);
+        keyboardDialog.setResizable(false);
         keyboardDialog.setSize(dialogWidth, dialogHeight);
         keyboardDialog.setMinimumSize(new Dimension(700, 450));
 
@@ -1185,6 +1231,25 @@ public class QuickKeysPanel extends JPanel {
         };
 
         headerPanel.add(closeButton, BorderLayout.EAST);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    keyboardDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         keyboardDialog.add(headerPanel, BorderLayout.NORTH);
 

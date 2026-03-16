@@ -487,6 +487,8 @@ public class PosInterface extends JFrame {
         int buttonHeight = Math.round(50 * scaleFactor);
 
         JDialog confirmDialog = new JDialog(this, title, Dialog.ModalityType.APPLICATION_MODAL);
+        confirmDialog.setUndecorated(true);
+        confirmDialog.setResizable(false);
         confirmDialog.setSize(400, 280);
         confirmDialog.setMinimumSize(new Dimension(350, 280));
         confirmDialog.setLocationRelativeTo(null);
@@ -503,6 +505,26 @@ public class PosInterface extends JFrame {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    confirmDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
+
 
         // Details panel
         JPanel detailsPanel = new JPanel(new BorderLayout());
@@ -569,6 +591,8 @@ public class PosInterface extends JFrame {
         int dialogHeight = Math.min(650, screenSize.height - 100);
 
         JDialog inputDialog = new JDialog(this, title, Dialog.ModalityType.APPLICATION_MODAL);
+        inputDialog.setUndecorated(true);  // Remove macOS window decorations
+        inputDialog.setResizable(false);   // Prevent resizing
         inputDialog.setSize(dialogWidth, dialogHeight);
         inputDialog.setMinimumSize(new Dimension(400, 550));
         inputDialog.setLocationRelativeTo(null); // Center on screen
@@ -583,6 +607,29 @@ public class PosInterface extends JFrame {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header for moving dialog
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    inputDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         inputDialog.add(headerPanel, BorderLayout.NORTH);
 
@@ -843,6 +890,8 @@ public class PosInterface extends JFrame {
         int dialogHeight = (int) (screenSize.height * 0.30);
 
         JDialog errorDialog = new JDialog(this, title, Dialog.ModalityType.APPLICATION_MODAL);
+        errorDialog.setUndecorated(true);
+        errorDialog.setResizable(false);
         errorDialog.setSize(dialogWidth, dialogHeight);
         errorDialog.setMinimumSize(new Dimension(320, 250));
         errorDialog.setLocationRelativeTo(this);
@@ -857,6 +906,25 @@ public class PosInterface extends JFrame {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    errorDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         errorDialog.add(headerPanel, BorderLayout.NORTH);
 
@@ -904,6 +972,8 @@ public class PosInterface extends JFrame {
         int dialogHeight = (int) (screenSize.height * 0.30);
 
         JDialog confirmDialog = new JDialog(this, "Confirm Close", Dialog.ModalityType.APPLICATION_MODAL);
+        confirmDialog.setUndecorated(true);
+        confirmDialog.setResizable(false);
         confirmDialog.setSize(dialogWidth, dialogHeight);
         confirmDialog.setMinimumSize(new Dimension(320, 250));
         confirmDialog.setLocationRelativeTo(this);
@@ -918,6 +988,25 @@ public class PosInterface extends JFrame {
         headerLabel.setFont(new Font("Arial", Font.BOLD, headerFontSize));
         headerLabel.setForeground(Color.WHITE);
         headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add mouse drag functionality to header
+        final java.awt.Point[] mouseDownCompCoords = {null};
+        headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = e.getPoint();
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                mouseDownCompCoords[0] = null;
+            }
+        });
+        headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (mouseDownCompCoords[0] != null) {
+                    java.awt.Point currCoords = e.getLocationOnScreen();
+                    confirmDialog.setLocation(currCoords.x - mouseDownCompCoords[0].x, currCoords.y - mouseDownCompCoords[0].y);
+                }
+            }
+        });
 
         confirmDialog.add(headerPanel, BorderLayout.NORTH);
 
