@@ -306,8 +306,12 @@ public class PosInterface extends JFrame {
         int checkboxSelectionCount = selectedIds.size();
         boolean hasRowSelection = currentSalePanel.hasRowSelection();
 
-        // Enable Delete button if any checkboxes selected
-        actionsPanel.setDeleteSelectedEnabled(checkboxSelectionCount > 0);
+        // Enable Delete button if:
+        // - Any checkboxes selected, OR
+        // - No checkboxes selected but a row is selected
+        boolean enableDelete = (checkboxSelectionCount > 0) ||
+                               (checkboxSelectionCount == 0 && hasRowSelection);
+        actionsPanel.setDeleteSelectedEnabled(enableDelete);
 
         // Enable Change Qty button if:
         // - Exactly 1 checkbox selected, OR
@@ -320,11 +324,17 @@ public class PosInterface extends JFrame {
     private void handleDeleteSelected() {
         var selectedIds = currentSalePanel.getSelectedItemIds();
 
+        // If no checkboxes selected, check for row selection
         if (selectedIds.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No items selected", "Info",
-                JOptionPane.INFORMATION_MESSAGE);
-            actionsPanel.returnFocusToScanner();
-            return;
+            Integer rowSelectedId = currentSalePanel.getRowSelectedItemId();
+            if (rowSelectedId != null) {
+                selectedIds = List.of(rowSelectedId);
+            } else {
+                JOptionPane.showMessageDialog(this, "No items selected", "Info",
+                    JOptionPane.INFORMATION_MESSAGE);
+                actionsPanel.returnFocusToScanner();
+                return;
+            }
         }
 
         // Create custom confirmation dialog

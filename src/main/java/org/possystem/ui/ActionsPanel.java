@@ -498,7 +498,7 @@ public class ActionsPanel extends JPanel {
             boolean confirmed = showConfirmDialog(
                 "Next Dollar Payment",
                 String.format("NEXT DOLLAR: $%.2f", nextDollar),
-                String.format("Total: $%.2f | Change back: $%.2f", total, change)
+                String.format("Total: $%.2f | Next Dollar: $%.2f | Change back: $%.2f", total, nextDollar, change)
             );
 
             if (confirmed) {
