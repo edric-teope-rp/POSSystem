@@ -59,13 +59,23 @@ public class QuickKeysPanel extends JPanel {
     private void initializeComponents() {
         quickKeysGridPanel = new JPanel(new GridLayout(4, 3, 10, 10));
 
-        // Search field with auto-suggest
+        // Search field with auto-suggest (read-only, opens keyboard dialog)
         searchField = new JTextField(30);
         searchField.setFont(new Font("Arial", Font.PLAIN, 16));
         searchField.setBorder(BorderFactory.createCompoundBorder(
             searchField.getBorder(),
             BorderFactory.createEmptyBorder(0, 5, 0, 65)
         ));
+        searchField.setEditable(false); // Read-only - click opens on-screen keyboard
+        searchField.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        searchField.setFocusable(false); // Prevent focus, make click always trigger dialog immediately
+        searchField.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                // Use mousePressed instead of mouseClicked for immediate response
+                openKeyboardDialog();
+            }
+        });
 
         // Create clear button (X icon)
         clearSearchButton = createClearButton();
@@ -1085,5 +1095,277 @@ public class QuickKeysPanel extends JPanel {
 
         // Repaint to show visual changes
         repaint();
+    }
+
+    private void openKeyboardDialog() {
+        // Get screen dimensions for responsive sizing
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int screenHeight = screenSize.height;
+        float scaleFactor = screenHeight / 1080.0f;
+
+        int dialogWidth = Math.min(800, screenSize.width - 100);
+        int dialogHeight = Math.min(500, screenSize.height - 100);
+
+        JDialog keyboardDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Search Products", Dialog.ModalityType.MODELESS);
+        keyboardDialog.setSize(dialogWidth, dialogHeight);
+        keyboardDialog.setMinimumSize(new Dimension(700, 450));
+
+        // Position at lower center of screen
+        int x = (screenSize.width - dialogWidth) / 2;
+        int y = screenSize.height - dialogHeight - 50; // 50px padding from bottom
+        keyboardDialog.setLocation(x, y);
+        keyboardDialog.setLayout(new BorderLayout());
+
+        // Header Panel with close button
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(23, 162, 184));  // Info blue
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        JLabel headerLabel = new JLabel("Enter Product Name");
+        headerLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        headerLabel.setForeground(Color.WHITE);
+        headerPanel.add(headerLabel, BorderLayout.CENTER);
+
+        // Add custom close button (X) to header
+        JButton closeButton = new JButton() {
+            private boolean isHovered = false;
+
+            {
+                setFocusPainted(false);
+                setBorderPainted(false);
+                setContentAreaFilled(false);
+                setOpaque(false);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setPreferredSize(new Dimension(40, 40));
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+
+                addActionListener(e -> keyboardDialog.dispose());
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int size = Math.min(getWidth(), getHeight());
+                int padding = size / 3;
+
+                if (isHovered) {
+                    g2d.setColor(new Color(220, 53, 69)); // Red on hover
+                    g2d.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 4, 4);
+                }
+
+                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2d.setColor(Color.WHITE);
+
+                int x1 = padding;
+                int y1 = padding;
+                int x2 = size - padding;
+                int y2 = size - padding;
+
+                g2d.drawLine(x1, y1, x2, y2);
+                g2d.drawLine(x2, y1, x1, y2);
+
+                g2d.dispose();
+            }
+        };
+
+        headerPanel.add(closeButton, BorderLayout.EAST);
+
+        keyboardDialog.add(headerPanel, BorderLayout.NORTH);
+
+        // Center Panel with input field and keyboard
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Input text field (read-only, keyboard only)
+        JTextField inputField = new JTextField(searchField.getText());
+        inputField.setFont(new Font("Arial", Font.BOLD, 20));
+        inputField.setHorizontalAlignment(JTextField.CENTER);
+        inputField.setMaximumSize(new Dimension(700, 50));
+        inputField.setPreferredSize(new Dimension(700, 50));
+        inputField.setAlignmentX(Component.CENTER_ALIGNMENT);
+        inputField.setEditable(false);  // Only keyboard can input
+        centerPanel.add(inputField);
+
+        centerPanel.add(Box.createVerticalStrut(15));
+
+        // QWERTY Keyboard Panel
+        JPanel keyboardPanel = createQWERTYKeyboard(inputField);
+        keyboardPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        centerPanel.add(keyboardPanel);
+
+        keyboardDialog.add(centerPanel, BorderLayout.CENTER);
+
+        // Allow Escape key to close dialog
+        keyboardDialog.getRootPane().registerKeyboardAction(
+            e -> keyboardDialog.dispose(),
+            KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0),
+            JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+
+        // Close dialog when clicking outside
+        keyboardDialog.addWindowFocusListener(new java.awt.event.WindowFocusListener() {
+            @Override
+            public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                // Do nothing
+            }
+
+            @Override
+            public void windowLostFocus(java.awt.event.WindowEvent e) {
+                keyboardDialog.dispose();
+            }
+        });
+
+        keyboardDialog.setVisible(true);
+    }
+
+    private JPanel createQWERTYKeyboard(JTextField inputField) {
+        JPanel keyboardPanel = new JPanel(new GridBagLayout());
+        keyboardPanel.setBackground(Color.WHITE);
+        keyboardPanel.setMaximumSize(new Dimension(700, 350));
+        keyboardPanel.setPreferredSize(new Dimension(700, 350));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(3, 3, 3, 3);
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+
+        // Row 0: 1 2 3 4 5 6 7 8 9 0 (Number row)
+        String[] row0 = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"};
+        gbc.gridy = 0;
+        for (int i = 0; i < row0.length; i++) {
+            gbc.gridx = i;
+            gbc.gridwidth = 1;
+            JButton key = createKeyboardKey(row0[i], inputField);
+            keyboardPanel.add(key, gbc);
+        }
+
+        // Row 1: Q W E R T Y U I O P
+        String[] row1 = {"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"};
+        gbc.gridy = 1;
+        for (int i = 0; i < row1.length; i++) {
+            gbc.gridx = i;
+            gbc.gridwidth = 1;
+            JButton key = createKeyboardKey(row1[i], inputField);
+            keyboardPanel.add(key, gbc);
+        }
+
+        // Row 2: A S D F G H J K L
+        String[] row2 = {"A", "S", "D", "F", "G", "H", "J", "K", "L"};
+        gbc.gridy = 2;
+        for (int i = 0; i < row2.length; i++) {
+            gbc.gridx = i;
+            gbc.gridwidth = 1;
+            JButton key = createKeyboardKey(row2[i], inputField);
+            keyboardPanel.add(key, gbc);
+        }
+
+        // Backspace button (right of row 2)
+        gbc.gridx = 9;
+        gbc.gridwidth = 1;
+        JButton backspaceBtn = createKeyboardKey("←", inputField);
+        backspaceBtn.setBackground(new Color(255, 193, 7)); // Amber
+        backspaceBtn.setForeground(Color.WHITE);
+        applyRoundedStyle(backspaceBtn);
+        keyboardPanel.add(backspaceBtn, gbc);
+
+        // Row 3: Z X C V B N M
+        String[] row3 = {"Z", "X", "C", "V", "B", "N", "M"};
+        gbc.gridy = 3;
+        for (int i = 0; i < row3.length; i++) {
+            gbc.gridx = i;
+            gbc.gridwidth = 1;
+            JButton key = createKeyboardKey(row3[i], inputField);
+            keyboardPanel.add(key, gbc);
+        }
+
+        // Clear button (right of row 3)
+        gbc.gridx = 7;
+        gbc.gridwidth = 3;
+        JButton clearBtn = createKeyboardKey("Clear", inputField);
+        clearBtn.setBackground(new Color(220, 53, 69)); // Red
+        clearBtn.setForeground(Color.WHITE);
+        applyRoundedStyle(clearBtn);
+        keyboardPanel.add(clearBtn, gbc);
+
+        // Row 4: Space bar + Enter
+        gbc.gridy = 4;
+        gbc.gridx = 0;
+        gbc.gridwidth = 7;
+        JButton spaceBtn = createKeyboardKey("Space", inputField);
+        keyboardPanel.add(spaceBtn, gbc);
+
+        // Enter button (right side of row 4)
+        gbc.gridx = 7;
+        gbc.gridwidth = 3;
+        JButton enterBtn = createKeyboardKey("Enter", inputField);
+        enterBtn.setBackground(new Color(40, 167, 69)); // Green
+        enterBtn.setForeground(Color.WHITE);
+        applyRoundedStyle(enterBtn);
+        keyboardPanel.add(enterBtn, gbc);
+
+        return keyboardPanel;
+    }
+
+    private JButton createKeyboardKey(String key, JTextField inputField) {
+        JButton keyButton = new JButton(key);
+        keyButton.setFont(new Font("Arial", Font.BOLD, 16));
+        keyButton.setFocusPainted(false);
+        keyButton.setBackground(new Color(248, 249, 250)); // Light gray
+        keyButton.setForeground(Color.BLACK);
+
+        keyButton.addActionListener(e -> {
+            String currentText = inputField.getText();
+            String newText = currentText;
+
+            if (key.equals("Clear")) {
+                newText = "";
+            } else if (key.equals("←")) {
+                // Backspace - remove last character
+                if (currentText.length() > 0) {
+                    newText = currentText.substring(0, currentText.length() - 1);
+                }
+            } else if (key.equals("Space")) {
+                newText = currentText + " ";
+            } else if (key.equals("Enter")) {
+                // Enter key - close the dialog
+                Window window = SwingUtilities.getWindowAncestor(keyButton);
+                if (window != null) {
+                    window.dispose();
+                }
+                return; // Don't update text fields
+            } else {
+                // Letter or number key
+                newText = currentText + key;
+            }
+
+            // Update dialog input field
+            inputField.setText(newText);
+
+            // Also update the actual search field in real-time
+            searchField.setText(newText);
+
+            // Trigger search/auto-suggest as user types
+            handleSearchInput();
+        });
+
+        return keyButton;
     }
 }
